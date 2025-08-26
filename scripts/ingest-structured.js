@@ -28,12 +28,21 @@ async function embed(text) {
 }
 
 async function main() {
-  const pdfPath = path.join(process.cwd(), 'public', 'bookchapters', 'chapter.pdf')
-  if (!fs.existsSync(pdfPath)) { console.error('PDF not found at', pdfPath); process.exit(1) }
+  // Support both public/content and public/Content (case-insensitive on Windows, but explicit for Git)
+  const contentDirLower = path.join(process.cwd(), 'public', 'content')
+  const contentDirUpper = path.join(process.cwd(), 'public', 'Content')
+  const contentDir = fs.existsSync(contentDirLower) ? contentDirLower : contentDirUpper
 
-  const data = await pdf(fs.readFileSync(pdfPath))
-  const paragraphs = splitIntoParagraphs(cleanPdfText(data.text))
-  console.log('Paragraphs:', paragraphs.length)
+  if (!fs.existsSync(contentDir)) {
+    console.error('Content folder not found. Expected one of:', contentDirLower, 'or', contentDirUpper)
+    process.exit(1)
+  }
+
+  const files = fs.readdirSync(contentDir).filter(f => f.toLowerCase().endsWith('.pdf'))
+  if (files.length === 0) {
+    console.error('No PDF files found in', contentDir)
+    process.exit(1)
+  }
 
   const client = new MongoClient(MONGODB_URI)
   await client.connect()
@@ -44,19 +53,29 @@ async function main() {
   await resources.deleteMany({})
   await embeddings.deleteMany({})
 
-  for (let i = 0; i < paragraphs.length; i++) {
-    const content = paragraphs[i]
-    const id = `${i}-${Date.now()}`
-    const emb = await embed(content)
-    await resources.insertOne({ id, content, createdAt: new Date() })
-    await embeddings.insertOne({ id: `${id}-emb`, resourceId: id, content, embedding: emb, createdAt: new Date() })
-    if (i % 25 === 0) console.log(`Ingested ${i}/${paragraphs.length}`)
+  let totalParagraphs = 0
+  for (const filename of files) {
+    const pdfPath = path.join(contentDir, filename)
+    const data = await pdf(fs.readFileSync(pdfPath))
+    const paragraphs = splitIntoParagraphs(cleanPdfText(data.text))
+    totalParagraphs += paragraphs.length
+    console.log(`Processing ${filename}: ${paragraphs.length} paragraphs`)
+
+    for (let i = 0; i < paragraphs.length; i++) {
+      const content = paragraphs[i]
+      const id = `${path.parse(filename).name}-${i}-${Date.now()}`
+      const emb = await embed(content)
+      await resources.insertOne({ id, content, createdAt: new Date() })
+      await embeddings.insertOne({ id: `${id}-emb`, resourceId: id, content, embedding: emb, createdAt: new Date() })
+      if (i % 25 === 0) console.log(`Ingested ${i}/${paragraphs.length} from ${filename}`)
+    }
   }
 
   await client.close()
-  console.log('Done.')
+  console.log('Done. Total paragraphs ingested:', totalParagraphs)
 }
 
 main().catch(e => { console.error(e); process.exit(1) })
+
 
 

@@ -24,7 +24,7 @@ npm install
 npm run rag:create-index
 ```
 
-4. Add your PDF to `public/bookchapters/chapter.pdf` and ingest:
+4. Place PDFs in `public/content/` (ignored by Git) and ingest all PDFs:
 
 ```
 npm run rag:ingest
@@ -43,3 +43,4 @@ Open http://localhost:3000 and use the single chat.
 - Collections used: `resources`, `embeddings`, `chat_threads`, `chat_memory` in database `math1000a_tutors`.
 - Index names: `embedding_index` (on `embeddings.embedding`), `chat_memory_index` (on `chat_memory.embedding`).
 - The API route is at `app/api/rag/route.ts`.
+ - The ingestion script scans `public/content/` (or `public/Content/` on Windows) for all `.pdf` files.
