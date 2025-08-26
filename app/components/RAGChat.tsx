@@ -62,7 +62,7 @@ export default function RAGChat() {
         role: 'assistant',
       }
       setMessages(prev => [...prev, assistantMessage])
-    } catch (err) {
+    } catch {
       const errorMessage: Message = {
         id: `${Date.now()}-error`,
         content: 'There was an error. Please try again.',

@@ -78,13 +78,22 @@ Your mission is to ensure the student arrives in class fully prepared on this un
         { role: 'user' as const, content: userQuery },
         { role: 'assistant' as const, content: aiResponse }
       ]
-      const docs = [] as any[]
+      const docs: Array<{
+        threadId: string;
+        role: 'user' | 'assistant';
+        turn: number;
+        content: string;
+        embedding: number[];
+        createdAt: Date;
+      }> = []
       for (let i = 0; i < items.length; i++) {
         const emb = await generateEmbedding(items[i].content)
         docs.push({ threadId: sessionId, role: items[i].role, turn: i + 1, content: items[i].content, embedding: emb, createdAt: new Date() })
       }
       await chatMemory.insertMany(docs)
-    } catch (_) {}
+    } catch {
+      // Silently handle memory storage errors
+    }
 
     return Response.json({ content: aiResponse })
   } catch (error: unknown) {

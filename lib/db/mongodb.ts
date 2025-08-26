@@ -39,7 +39,9 @@ async function ensureIndexes() {
     await resourcesCollection.createIndex({ content: 'text' })
     await threadsCollection.createIndex({ sessionId: 1, chapter: 1 })
     await chatMemoryCollection.createIndex({ threadId: 1, turn: 1 })
-  } catch (_) {}
+  } catch {
+    // Silently handle index creation errors
+  }
 }
 
 export async function getCollections() { await connectToDatabase(); return { resources: resourcesCollection, embeddings: embeddingsCollection, threads: threadsCollection, chatMemory: chatMemoryCollection } }

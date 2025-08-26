@@ -28,7 +28,12 @@ export const findRelevantContent = async (userQuery: string, limit: number = 5) 
   // Fallback lexical
   const regex = userQuery.split(/\s+/).filter(t => t.length > 2).join('|')
   const text = await resources.find({ content: { $regex: regex, $options: 'i' } }).limit(limit).toArray()
-  return text.map(r => ({ name: (r as any).content, similarity: 0.6, resourceId: (r as any).id || (r as any)._id?.toString?.(), source: (r as any).source }))
+  return text.map(r => ({ 
+    name: (r as { content: string }).content, 
+    similarity: 0.6, 
+    resourceId: (r as { id?: string; _id?: { toString(): string } }).id || (r as { _id?: { toString(): string } })._id?.toString?.(), 
+    source: (r as { source?: string }).source 
+  }))
 }
 
 
