@@ -16,19 +16,19 @@ export const findRelevantContent = async (userQuery: string, limit: number = 5) 
 
   if (numEmbeddings > 0) {
     const qv = await generateEmbedding(userQuery)
-    const vectorResults = await embeddings.aggregate<{ content: string; resourceId?: string; score: number }>([
+    const vectorResults = await embeddings.aggregate<{ content: string; resourceId?: string; source?: string; score: number }>([
       { $vectorSearch: { queryVector: qv, path: 'embedding', numCandidates: 200, limit: Math.max(limit, 8), index: 'embedding_index' } },
-      { $project: { _id: 0, content: 1, resourceId: 1, score: { $meta: 'vectorSearchScore' } } }
+      { $project: { _id: 0, content: 1, resourceId: 1, source: 1, score: { $meta: 'vectorSearchScore' } } }
     ]).toArray()
     if (vectorResults.length > 0) {
-      return vectorResults.slice(0, limit).map(v => ({ name: v.content, similarity: v.score, resourceId: v.resourceId }))
+      return vectorResults.slice(0, limit).map(v => ({ name: v.content, similarity: v.score, resourceId: v.resourceId, source: v.source }))
     }
   }
 
   // Fallback lexical
   const regex = userQuery.split(/\s+/).filter(t => t.length > 2).join('|')
   const text = await resources.find({ content: { $regex: regex, $options: 'i' } }).limit(limit).toArray()
-  return text.map(r => ({ name: r.content, similarity: 0.6, resourceId: (r as any).id || (r as any)._id?.toString?.() }))
+  return text.map(r => ({ name: (r as any).content, similarity: 0.6, resourceId: (r as any).id || (r as any)._id?.toString?.(), source: (r as any).source }))
 }
 
 

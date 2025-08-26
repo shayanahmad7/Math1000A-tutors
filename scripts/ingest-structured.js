@@ -1,6 +1,13 @@
-require('dotenv').config({ path: '.env.local' })
-const fs = require('fs')
 const path = require('path')
+const fs = require('fs')
+// Load env from local .env.local, then fallback to parent .env.local if needed
+require('dotenv').config({ path: path.join(process.cwd(), '.env.local') })
+if (!process.env.MONGODB_URI || !process.env.OPENAI_API_KEY) {
+  const parentEnv = path.join(process.cwd(), '..', '.env.local')
+  if (fs.existsSync(parentEnv)) {
+    require('dotenv').config({ path: parentEnv })
+  }
+}
 const pdf = require('pdf-parse')
 const { MongoClient } = require('mongodb')
 const OpenAI = require('openai')
@@ -38,7 +45,21 @@ async function main() {
     process.exit(1)
   }
 
-  const files = fs.readdirSync(contentDir).filter(f => f.toLowerCase().endsWith('.pdf'))
+  function canonicalize(name) {
+    return name
+      .toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9_.-]+/g, '_')
+      .replace(/_+/g, '_')
+  }
+  const allow = new Set([
+    '1_real_numbers_notes.pdf',
+    '1_real_numbers_exercises.pdf'
+  ])
+  const files = fs
+    .readdirSync(contentDir)
+    .filter(f => f.toLowerCase().endsWith('.pdf'))
+    .filter(f => allow.has(canonicalize(f)))
   if (files.length === 0) {
     console.error('No PDF files found in', contentDir)
     process.exit(1)
@@ -50,8 +71,9 @@ async function main() {
   const resources = db.collection('resources')
   const embeddings = db.collection('embeddings')
 
-  await resources.deleteMany({})
-  await embeddings.deleteMany({})
+  // Clean only for our two sources
+  await resources.deleteMany({ source: { $in: ['1_Real_Numbers_Notes', '1_Real_Numbers_Exercises'] } })
+  await embeddings.deleteMany({ source: { $in: ['1_Real_Numbers_Notes', '1_Real_Numbers_Exercises'] } })
 
   let totalParagraphs = 0
   for (const filename of files) {
@@ -61,12 +83,14 @@ async function main() {
     totalParagraphs += paragraphs.length
     console.log(`Processing ${filename}: ${paragraphs.length} paragraphs`)
 
+    const baseName = path.parse(filename).name
+    const source = baseName
     for (let i = 0; i < paragraphs.length; i++) {
       const content = paragraphs[i]
-      const id = `${path.parse(filename).name}-${i}-${Date.now()}`
+      const id = `${baseName}-${i}-${Date.now()}`
       const emb = await embed(content)
-      await resources.insertOne({ id, content, createdAt: new Date() })
-      await embeddings.insertOne({ id: `${id}-emb`, resourceId: id, content, embedding: emb, createdAt: new Date() })
+      await resources.insertOne({ id, source, content, createdAt: new Date() })
+      await embeddings.insertOne({ id: `${id}-emb`, resourceId: id, source, content, embedding: emb, createdAt: new Date() })
       if (i % 25 === 0) console.log(`Ingested ${i}/${paragraphs.length} from ${filename}`)
     }
   }

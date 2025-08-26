@@ -21,7 +21,16 @@ export default function RAGChat() {
 
   useEffect(() => {
     const initialMessages: Message[] = [
-      { id: 'initial-1', content: 'Welcome to the Math 1000A tutor. Ask a question or paste a problem.', role: 'assistant' },
+      {
+        id: 'initial-1',
+        content: "Your conversation with this tutor is being recorded. Data collected will not be published but will be analyzed to enhance the user experience in the future.",
+        role: 'assistant'
+      },
+      {
+        id: 'initial-2',
+        content: "What's on your mind?",
+        role: 'assistant'
+      }
     ]
     setMessages(initialMessages)
   }, [])
@@ -65,32 +74,55 @@ export default function RAGChat() {
     }
   }
 
-  const normalizeMath = (text: string) => {
-    let t = text
-    t = t.replace(/\\\[([\s\S]*?)\\\]/g, (_m, expr) => `$$${expr}$$`)
-    t = t.replace(/\\\(([^\)]*?)\\\)/g, (_m, expr) => `$${expr}$`)
-    t = t.replace(/(^|\n)\s*\[\s*([^\]]+?)\s*\](?=\s*($|\n))/g, (_m, p1, expr) => `${p1}$$${expr}$$`)
-    return t
-  }
-
-  const normalizeLists = (text: string) => {
-    const lines = text.split(/\n/)
-    const out: string[] = []
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i]
-      const subpart = /^\s*(?:\(([a-zA-Z0-9]+)\)|([a-zA-Z0-9]+)[\.)])\s+/.exec(line)
-      if (subpart) {
-        if (!/^\s*[-*+]\s+/.test(line) && !/^\s*\d+\./.test(line)) {
-          out.push(line.replace(/^\s*/, '- '))
-          continue
-        }
-      }
-      out.push(line)
+  const renderMessage = (content: string) => {
+    // Improve math formatting by normalizing various bracket patterns
+    const normalizeMath = (text: string) => {
+      let t = text
+      // Convert [ expression ] to $$ expression $$ for display math
+      t = t.replace(/\[\s*([^[\]]+?)\s*\]/g, '$$$$1$$')
+      // Convert \[ expression \] to $$ expression $$
+      t = t.replace(/\\\[\s*([\s\S]*?)\s*\\\]/g, '$$$$1$$')
+      // Convert \( expression \) to $ expression $
+      t = t.replace(/\\\(\s*([^)]*?)\s*\\\)/g, '$$$1$$')
+      return t
     }
-    return out.join('\n')
-  }
 
-  const prettify = (text: string) => normalizeLists(normalizeMath(text))
+    return (
+      <ReactMarkdown
+        remarkPlugins={[remarkMath]}
+        rehypePlugins={[rehypeKatex]}
+        className="prose prose-sm dark:prose-invert max-w-none"
+        components={{
+          h1: ({ ...props }) => (
+            <h1 className="text-2xl font-bold my-4 text-center" {...props} />
+          ),
+          h2: ({ ...props }) => (
+            <h2 className="text-xl font-bold my-3 text-center" {...props} />
+          ),
+          h3: ({ ...props }) => (
+            <h3 className="text-lg font-bold my-3" {...props} />
+          ),
+          p: ({ ...props }) => (
+            <p className="my-2" {...props} />
+          ),
+          ul: ({ ...props }) => (
+            <ul className="my-2 space-y-1 list-disc pl-6" {...props} />
+          ),
+          ol: ({ ...props }) => (
+            <ol className="my-2 space-y-1 list-decimal pl-6" {...props} />
+          ),
+          li: ({ ...props }) => (
+            <li className="leading-normal" {...props} />
+          ),
+          blockquote: ({ ...props }) => (
+            <blockquote className="border-l-4 border-gray-300 pl-4 my-2" {...props} />
+          )
+        }}
+      >
+        {normalizeMath(content)}
+      </ReactMarkdown>
+    )
+  }
 
   return (
     <div className="flex h-[60vh] flex-col rounded-xl bg-gray-50 shadow-inner">
@@ -103,14 +135,14 @@ export default function RAGChat() {
               ) : (
                 <Bot className="mr-2 h-5 w-5 shrink-0 mt-1" />
               )}
-              <div className={`${m.role === 'user' ? 'prose-invert' : ''} prose prose-sm max-w-none [&_.katex-display]:my-3 [&_.katex-display]:text-center`}>
-                {m.role === 'user' ? (
-                  <>{m.content}</>
-                ) : (
-                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-                    {prettify(m.content)}
-                  </ReactMarkdown>
-                )}
+              <div 
+                className={`${m.role === 'user' ? 'prose-invert' : ''} 
+                  prose-headings:text-inherit prose-p:text-inherit
+                  prose-strong:text-inherit prose-ol:text-inherit prose-ul:text-inherit
+                  [&_.katex-display]:my-3 [&_.katex-display]:text-center
+                `}
+              >
+                {m.role === 'user' ? <>{m.content}</> : renderMessage(m.content)}
               </div>
             </div>
           </div>
@@ -132,7 +164,7 @@ export default function RAGChat() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about Math 1000A..."
+            placeholder="Ask about real numbers..."
             disabled={isLoading}
             className="flex-1 rounded-l-full bg-transparent px-6 py-3 focus:outline-none"
           />

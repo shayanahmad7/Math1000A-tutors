@@ -1,4 +1,13 @@
-require('dotenv').config({ path: '.env.local' })
+const path = require('path')
+const fs = require('fs')
+// Load env from local .env.local, then fallback to parent .env.local if needed
+require('dotenv').config({ path: path.join(process.cwd(), '.env.local') })
+if (!process.env.MONGODB_URI) {
+  const parentEnv = path.join(process.cwd(), '..', '.env.local')
+  if (fs.existsSync(parentEnv)) {
+    require('dotenv').config({ path: parentEnv })
+  }
+}
 const { MongoClient } = require('mongodb')
 
 const MONGODB_URI = process.env.MONGODB_URI
