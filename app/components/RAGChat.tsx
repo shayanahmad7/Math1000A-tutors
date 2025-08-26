@@ -78,12 +78,18 @@ export default function RAGChat() {
     // Improve math formatting by normalizing various bracket patterns
     const normalizeMath = (text: string) => {
       let t = text
-      // Convert [ expression ] to $$ expression $$ for display math
-      t = t.replace(/\[\s*([^[\]]+?)\s*\]/g, '$$$$1$$')
-      // Convert \[ expression \] to $$ expression $$
+      // Convert \[ expression \] to $$ expression $$ (LaTeX display math)
       t = t.replace(/\\\[\s*([\s\S]*?)\s*\\\]/g, '$$$$1$$')
-      // Convert \( expression \) to $ expression $
+      // Convert \( expression \) to $ expression $ (LaTeX inline math)
       t = t.replace(/\\\(\s*([^)]*?)\s*\\\)/g, '$$$1$$')
+      // Convert [ mathematical_expression ] to $$ mathematical_expression $$ but only if it contains math symbols
+      t = t.replace(/\[\s*([^[\]]*?[+\-*/=^()a-zA-Z0-9\s]+[^[\]]*?)\s*\]/g, (match, expr) => {
+        // Only convert if it looks like a math expression (contains math operators or variables)
+        if (/[+\-*/=^()a-zA-Z]/.test(expr) && expr.length > 2) {
+          return `$$${expr}$$`
+        }
+        return match // Leave unchanged if it doesn't look like math
+      })
       return t
     }
 

@@ -13,6 +13,7 @@ A specialized AI tutor for the "Real Numbers" unit of precalculus, built with Ne
 ## Quick Start
 
 1. **Environment Setup**: Copy `.env.example` to `.env.local` and add your credentials:
+
 ```env
 OPENAI_API_KEY=sk-...
 MONGODB_URI=mongodb+srv://...
@@ -20,25 +21,30 @@ EMBED_MODEL=text-embedding-3-large
 ```
 
 2. **Install Dependencies**:
+
 ```bash
 npm install
 ```
 
 3. **Add Course Materials**: Place your PDF files in `public/content/` (this folder is ignored by Git):
+
    - `1_Real Numbers_ Notes.pdf`
    - `1_Real Numbers_Exercises.pdf`
 
 4. **Create Vector Search Indexes**:
+
 ```bash
 npm run rag:create-index
 ```
 
 5. **Ingest Course Content**:
+
 ```bash
 npm run rag:ingest
 ```
 
 6. **Start Development Server**:
+
 ```bash
 npm run dev
 ```
@@ -48,6 +54,7 @@ Visit http://localhost:3000 to start learning!
 ## Teaching Approach
 
 The AI tutor is designed to:
+
 - **Engage actively** with topic lists and guided learning paths
 - **Provide hints** and guiding questions instead of direct answers
 - **Quote directly** from course materials when explaining concepts
@@ -65,6 +72,7 @@ The AI tutor is designed to:
 ## Content Sources
 
 The tutor draws knowledge exclusively from:
+
 1. **1_Real Numbers_Notes.pdf** - Core concepts and definitions
 2. **1_Real Numbers_Exercises.pdf** - Practice problems and applications
 
