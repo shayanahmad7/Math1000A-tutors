@@ -75,24 +75,30 @@ export default function RAGChat() {
   }
 
   const renderMessage = (content: string) => {
-    // Improve math formatting by normalizing various bracket patterns
     const normalizeMath = (text: string) => {
-      let t = text
-      // Convert \[ expression \] to $$ expression $$ (LaTeX display math)
-      t = t.replace(/\\\[\s*([\s\S]*?)\s*\\\]/g, '$$$$1$$')
-      // Convert \( expression \) to $ expression $ (LaTeX inline math)
-      t = t.replace(/\\\(\s*([^)]*?)\s*\\\)/g, '$$$1$$')
-      // Convert [ mathematical_expression ] to $$ mathematical_expression $$ but only if it contains math symbols
-      t = t.replace(/\[\s*([^[\]]*?[+\-*/=^()a-zA-Z0-9\s]+[^[\]]*?)\s*\]/g, (match, expr) => {
-        // Only convert if it looks like a math expression (contains math operators or variables)
-        if (/[+\-*/=^()a-zA-Z]/.test(expr) && expr.length > 2) {
-          return `$$${expr}$$`
+      let t = text;
+      t = t.replace(/\\\[([\s\S]*?)\\\]/g, (_m, expr) => `$$${expr}$$`);
+      t = t.replace(/\\\(([^\)]*?)\\\)/g, (_m, expr) => `$${expr}$`);
+      t = t.replace(/(^|\n)\s*\[\s*([^\]]+?)\s*\](?=\s*($|\n))/g, (_m, p1, expr) => `${p1}$$${expr}$$`);
+      return t;
+    };
+    const normalizeLists = (text: string) => {
+      const lines = text.split(/\n/);
+      const out: string[] = [];
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const subpart = /^\s*(?:\(([a-zA-Z0-9]+)\)|([a-zA-Z0-9]+)[\.)])\s+/.exec(line);
+        if (subpart) {
+          if (!/^\s*[-*+]\s+/.test(line) && !/^\s*\d+\./.test(line)) {
+            out.push(line.replace(/^\s*/, '- '));
+            continue;
+          }
         }
-        return match // Leave unchanged if it doesn't look like math
-      })
-      return t
-    }
-
+        out.push(line);
+      }
+      return out.join('\n');
+    };
+    const prettify = (text: string) => normalizeLists(normalizeMath(text));
     return (
       <ReactMarkdown
         remarkPlugins={[remarkMath]}
@@ -125,7 +131,7 @@ export default function RAGChat() {
           )
         }}
       >
-        {normalizeMath(content)}
+        {prettify(content)}
       </ReactMarkdown>
     )
   }
