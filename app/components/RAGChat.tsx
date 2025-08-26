@@ -17,6 +17,7 @@ export default function RAGChat() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [threadId, setThreadId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -48,21 +49,30 @@ export default function RAGChat() {
     setInput('')
     setIsLoading(true)
 
-    try {
-      const response = await fetch('/api/rag', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [...messages, userMessage] }),
-      })
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
-      const data = await response.json()
-      const assistantMessage: Message = {
-        id: `${Date.now()}-assistant`,
-        content: data.content || 'Sorry, I could not generate a response.',
-        role: 'assistant',
-      }
-      setMessages(prev => [...prev, assistantMessage])
-    } catch {
+          try {
+        const response = await fetch('/api/rag', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            messages: [...messages, userMessage],
+            threadId 
+          }),
+        })
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        const data = await response.json()
+        
+        // Update threadId if we get one back
+        if (data.threadId && !threadId) {
+          setThreadId(data.threadId)
+        }
+        
+        const assistantMessage: Message = {
+          id: `${Date.now()}-assistant`,
+          content: data.content || 'Sorry, I could not generate a response.',
+          role: 'assistant',
+        }
+        setMessages(prev => [...prev, assistantMessage])
+      } catch {
       const errorMessage: Message = {
         id: `${Date.now()}-error`,
         content: 'There was an error. Please try again.',
