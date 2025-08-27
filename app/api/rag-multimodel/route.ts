@@ -19,7 +19,7 @@ const gemini = new GoogleGenAI({
 });
 
 // Available models for selection (used in frontend component)
-export const AVAILABLE_MODELS = {
+const AVAILABLE_MODELS = {
   openai: [
     { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' },
     { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI' },
