@@ -747,67 +747,6 @@ Use this context as authoritative for wording and definitions.` : 'No specific c
                       }
                     );
                     console.log('[OPENROUTER-RAG] Assistant message saved to thread');
-                    
-                    // Store chat memory embeddings for long-term retrieval (exactly like original RAG)
-                    const items = [
-                      { role: 'user' as const, content: userQuery },
-                      { role: 'assistant' as const, content: fullResponse }
-                    ];
-                    const embeddings = await Promise.all(items.map(async (it) => ({
-                      role: it.role,
-                      content: it.content,
-                      embedding: await generateEmbedding(it.content)
-                    })));
-                    const docs = embeddings.map((e, idx) => ({
-                      threadId,
-                      role: e.role,
-                      turn: turnIndex + idx,
-                      content: e.content,
-                      embedding: e.embedding,
-                      createdAt: new Date()
-                    }));
-                    await chatMemory.insertMany(docs);
-                    console.log('[OPENROUTER-RAG] Memory embeddings stored successfully');
-                    
-                    // Update thread summary if needed (every 10 turns)
-                    if (turnIndex % 10 === 0) {
-                      try {
-                        const summaryPrompt = `Summarize the key points from this tutoring conversation in 2-3 sentences:\n\n${history.map(m => `[${m.role}] ${m.content}`).join('\n')}`;
-                        
-                        // Use OpenRouter to generate summary
-                        const summaryResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                          method: 'POST',
-                          headers: {
-                            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-                            'Content-Type': 'application/json',
-                            'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-                            'X-Title': 'Math1000A OpenRouter RAG Tutor'
-                          },
-                          body: JSON.stringify({
-                            model: selectedModel,
-                            messages: [{ role: 'user', content: summaryPrompt }],
-                            temperature: 0.3,
-                            max_tokens: 200
-                          })
-                        });
-                        
-                        if (summaryResponse.ok) {
-                          const summaryData = await summaryResponse.json();
-                          const summary = summaryData.choices?.[0]?.message?.content || '';
-                          
-                          if (summary) {
-                            await threadSummaries.updateOne(
-                              { threadId, chapter: selectedChapter },
-                              { $set: { summary, updatedAt: new Date() } },
-                              { upsert: true }
-                            );
-                            console.log('[OPENROUTER-RAG] Thread summary updated');
-                          }
-                        }
-                      } catch (e) {
-                        console.log('[OPENROUTER-RAG] Summary generation error:', e);
-                      }
-                    }
                   } catch (e) {
                     console.log('[OPENROUTER-RAG] Thread update or memory storage error:', e);
                   }
@@ -839,8 +778,89 @@ Use this context as authoritative for wording and definitions.` : 'No specific c
       }
     });
 
-    // We'll handle memory storage after streaming completes
-    // For now, just return the stream
+    // Store memory after streaming completes
+    // We need to handle this properly since streaming is async
+    const memoryStoragePromise = (async () => {
+      try {
+        // Wait a bit for streaming to complete
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Get the final thread state
+        const finalThreadDoc = await threads.findOne({ sessionId: threadId, chapter: selectedChapter });
+        const finalMessages = finalThreadDoc?.messages || [];
+        const lastAssistantMessage = finalMessages[finalMessages.length - 1];
+        
+        if (lastAssistantMessage && lastAssistantMessage.role === 'assistant') {
+          const aiResponse = lastAssistantMessage.content;
+          
+          // Store memory embeddings exactly like the original RAG
+          const items = [
+            { role: 'user' as const, content: userQuery },
+            { role: 'assistant' as const, content: aiResponse }
+          ];
+          const embeddings = await Promise.all(items.map(async (it) => ({
+            role: it.role,
+            content: it.content,
+            embedding: await generateEmbedding(it.content)
+          })));
+          const docs = embeddings.map((e, idx) => ({
+            threadId,
+            role: e.role,
+            turn: turnIndex + idx,
+            content: e.content,
+            embedding: e.embedding,
+            createdAt: new Date()
+          }));
+          await chatMemory.insertMany(docs);
+          console.log('[OPENROUTER-RAG] Memory embeddings stored successfully');
+          
+          // Update thread summary if needed (every 10 turns)
+          if (turnIndex % 10 === 0) {
+            try {
+              const summaryPrompt = `Summarize the key points from this tutoring conversation in 2-3 sentences:\n\n${history.map(m => `[${m.role}] ${m.content}`).join('\n')}`;
+              
+              // Use OpenRouter to generate summary
+              const summaryResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                  'Content-Type': 'application/json',
+                  'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+                  'X-Title': 'Math1000A OpenRouter RAG Tutor'
+                },
+                body: JSON.stringify({
+                  model: selectedModel,
+                  messages: [{ role: 'user', content: summaryPrompt }],
+                  temperature: 0.3,
+                  max_tokens: 200
+                })
+              });
+              
+              if (summaryResponse.ok) {
+                const summaryData = await summaryResponse.json();
+                const summary = summaryData.choices?.[0]?.message?.content || '';
+                
+                if (summary) {
+                  await threadSummaries.updateOne(
+                    { threadId, chapter: selectedChapter },
+                    { $set: { summary, updatedAt: new Date() } },
+                    { upsert: true }
+                  );
+                  console.log('[OPENROUTER-RAG] Thread summary updated');
+                }
+              }
+            } catch (e) {
+              console.log('[OPENROUTER-RAG] Summary generation error:', e);
+            }
+          }
+        }
+      } catch (e) {
+        console.log('[OPENROUTER-RAG] Memory storage error:', e);
+      }
+    })();
+    
+    // Don't await this, let it run in background
+    memoryStoragePromise.catch(e => console.log('[OPENROUTER-RAG] Memory storage failed:', e));
 
     console.log('[OPENROUTER-RAG] ===== Request Processing Complete =====');
     return new Response(stream, {
