@@ -466,6 +466,8 @@ const CHAPTER_CONFIGS = {
  */
 export async function POST(req: Request) {
   try {
+    console.log('[OPENROUTER-RAG] ===== Starting Request Processing =====');
+    
     // Parse incoming message data
     const input: { 
       messages: Array<{ role: 'user'|'assistant'; content: string }>; 
@@ -479,11 +481,17 @@ export async function POST(req: Request) {
     const selectedModel = input.selectedModel || 'openai/gpt-4o';
     const selectedChapter = input.selectedChapter || 'real-numbers';
     const threadId = input.threadId || 'session-' + Date.now();
+    const lastMessage = input.messages[input.messages.length - 1];
+    const userQuery = lastMessage?.content || '';
     
-    console.log(`[OPENROUTER-RAG] Model: ${selectedModel}, Chapter: ${selectedChapter}`);
-    console.log(`[OPENROUTER-RAG] API Key present: ${!!process.env.OPENROUTER_API_KEY}`);
-    console.log(`[OPENROUTER-RAG] Messages count: ${input.messages.length}`);
-    console.log(`[OPENROUTER-RAG] Files: ${input.files?.length || 0}, Images: ${input.images?.length || 0}`);
+    console.log(`[OPENROUTER-RAG] Request Details:`);
+    console.log(`  - Model: ${selectedModel}`);
+    console.log(`  - Chapter: ${selectedChapter}`);
+    console.log(`  - Thread ID: ${threadId}`);
+    console.log(`  - User Query: "${userQuery}"`);
+    console.log(`  - Messages Count: ${input.messages.length}`);
+    console.log(`  - Files: ${input.files?.length || 0}, Images: ${input.images?.length || 0}`);
+    console.log(`  - API Key Present: ${!!process.env.OPENROUTER_API_KEY}`);
     
     // Check if API key is present
     if (!process.env.OPENROUTER_API_KEY) {
@@ -498,6 +506,7 @@ export async function POST(req: Request) {
     const allModels = Object.values(AVAILABLE_MODELS).flat();
     const isValidModel = allModels.some(model => model.id === selectedModel);
     if (!isValidModel) {
+      console.error(`[OPENROUTER-RAG] Invalid model selection: ${selectedModel}`);
       return NextResponse.json({ 
         error: 'Invalid model selection' 
       }, { status: 400 });
@@ -506,15 +515,19 @@ export async function POST(req: Request) {
     // Validate chapter selection
     const chapterConfig = CHAPTER_CONFIGS[selectedChapter as keyof typeof CHAPTER_CONFIGS];
     if (!chapterConfig) {
+      console.error(`[OPENROUTER-RAG] Invalid chapter selection: ${selectedChapter}`);
       return NextResponse.json({ 
         error: 'Invalid chapter selection' 
       }, { status: 400 });
     }
 
-    const lastMessage = input.messages[input.messages.length - 1];
-    const userQuery = lastMessage?.content || '';
+    console.log(`[OPENROUTER-RAG] Chapter Config:`);
+    console.log(`  - Name: ${chapterConfig.name}`);
+    console.log(`  - Sources: ${chapterConfig.sources.join(', ')}`);
+    console.log(`  - Topics Count: ${chapterConfig.topics.length}`);
 
     // Load thread history and persist the new user message
+    console.log('[OPENROUTER-RAG] Loading thread history...');
     const { threads, chatMemory, threadSummaries } = await getCollections();
     await threads.updateOne(
       { sessionId: threadId, chapter: selectedChapter },
@@ -529,13 +542,19 @@ export async function POST(req: Request) {
     const threadDoc = await threads.findOne({ sessionId: threadId, chapter: selectedChapter });
     const turnIndex = (threadDoc?.messages?.length || 0) + 1;
     const history = (threadDoc?.messages || []).slice(-12); // keep recent turns for chronology
+    console.log(`[OPENROUTER-RAG] Thread loaded - Turn: ${turnIndex}, History length: ${history.length}`);
 
     // Retrieve long-term memory: top N prior exchanges semantically related to this query
+    console.log('[OPENROUTER-RAG] Retrieving long-term memory...');
     let memoryContext = '';
     try {
       const priorCount = await chatMemory.countDocuments({ threadId });
+      console.log(`[OPENROUTER-RAG] Prior memory entries: ${priorCount}`);
+      
       if (priorCount > 0) {
         const queryVec = await generateEmbedding(userQuery);
+        console.log(`[OPENROUTER-RAG] Generated query embedding, dimension: ${queryVec.length}`);
+        
         const memoryHits = await chatMemory.aggregate<{
           content: string;
           role: 'user'|'assistant';
@@ -553,26 +572,50 @@ export async function POST(req: Request) {
           },
           { $project: { _id: 0, content: 1, role: 1, score: { $meta: 'vectorSearchScore' } } }
         ]).toArray();
+        
+        console.log(`[OPENROUTER-RAG] Memory search results: ${memoryHits.length} hits`);
+        memoryHits.forEach((hit, idx) => {
+          console.log(`  ${idx + 1}. [${hit.role}] Score: ${hit.score.toFixed(3)} - "${hit.content.substring(0, 100)}..."`);
+        });
+        
         if (memoryHits.length > 0) {
           memoryContext = memoryHits.map(h => `[${h.role}] ${h.content}`).join('\n');
+          console.log(`[OPENROUTER-RAG] Memory context length: ${memoryContext.length} characters`);
         }
       }
     } catch (e) {
-      console.log('[OPENROUTER-RAG] Memory retrieval skipped:', e);
+      console.log('[OPENROUTER-RAG] Memory retrieval error:', e);
     }
 
     // Search for relevant content from PDFs (filter by chapter sources)
+    console.log('[OPENROUTER-RAG] Starting hybrid search for relevant content...');
+    console.log(`[OPENROUTER-RAG] Searching in sources: ${chapterConfig.sources.join(', ')}`);
+    
     const searchResults = await findRelevantContent(userQuery, 4, chapterConfig.sources);
-    console.log('[OPENROUTER-RAG] Found', searchResults.length, 'relevant results');
+    console.log(`[OPENROUTER-RAG] Search Results:`);
+    console.log(`  - Found ${searchResults.length} relevant chunks`);
+    
+    searchResults.forEach((result, idx) => {
+      console.log(`  ${idx + 1}. Source: ${result.source || 'Unknown'}`);
+      console.log(`     Similarity: ${result.similarity?.toFixed(3) || 'N/A'}`);
+      console.log(`     Content: "${result.name.substring(0, 150)}..."`);
+      console.log(`     Resource ID: ${result.resourceId || 'N/A'}`);
+    });
 
     // Prepare context from search results
     let contextText = '';
     if (searchResults.length > 0) {
       contextText = searchResults.map(r => `${r.source ? `[${r.source}]` : ''}\n${r.name}`).join('\n\n');
+      console.log(`[OPENROUTER-RAG] Context text length: ${contextText.length} characters`);
+    } else {
+      console.log('[OPENROUTER-RAG] No relevant content found - will use general knowledge');
     }
 
     // Create system prompt based on chapter
     const systemPrompt = `You are a specialized AI math tutor for ${chapterConfig.name} of a precalculus course at NYU Abu Dhabi. Your only role is to teach and help students master the content of this chapter using the provided course materials. You must not reference or use any other source of information, examples, or methods. You must not mention file names or professors' names.
+
+IMPORTANT: You have access to the following course documents for this chapter:
+${chapterConfig.sources.map(source => `- ${source}`).join('\n')}
 
 Your job is to:  
 Teach only the following topics from this chapter:  
@@ -604,11 +647,17 @@ ${contextText}
 
 Use this context as authoritative for wording and definitions.` : 'No specific course passages were found for this query. Answer using only the ' + chapterConfig.name + ' knowledge.'}`;
 
+    console.log(`[OPENROUTER-RAG] System prompt length: ${systemPrompt.length} characters`);
+
+    // Get conversation summary and memory context
     const summaryDoc = await threadSummaries.findOne({ threadId, chapter: selectedChapter });
     const summaryBlock = summaryDoc?.summary ? `\n\nConversation summary (so far):\n${summaryDoc.summary}` : '';
     const memoryBlock = memoryContext
       ? `\n\nRelevant prior conversation excerpts:\n${memoryContext}`
       : '';
+
+    console.log(`[OPENROUTER-RAG] Summary block length: ${summaryBlock.length}`);
+    console.log(`[OPENROUTER-RAG] Memory block length: ${memoryBlock.length}`);
 
     // Prepare messages for OpenRouter
     const openrouterMessages = [
@@ -616,6 +665,9 @@ Use this context as authoritative for wording and definitions.` : 'No specific c
       ...history.map(m => ({ role: m.role, content: m.content })),
       { role: 'user', content: userQuery }
     ];
+
+    console.log(`[OPENROUTER-RAG] Prepared ${openrouterMessages.length} messages for OpenRouter`);
+    console.log(`[OPENROUTER-RAG] Calling OpenRouter API...`);
 
     // Call OpenRouter API with streaming
     const openrouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -635,9 +687,11 @@ Use this context as authoritative for wording and definitions.` : 'No specific c
       })
     });
 
+    console.log(`[OPENROUTER-RAG] OpenRouter response status: ${openrouterResponse.status}`);
+
     if (!openrouterResponse.ok) {
       const errorData = await openrouterResponse.json().catch(() => ({ error: 'Failed to parse error response' }));
-      console.error('[OPENROUTER-RAG] API Error:', {
+      console.error('[OPENROUTER-RAG] OpenRouter API Error:', {
         status: openrouterResponse.status,
         statusText: openrouterResponse.statusText,
         error: errorData
@@ -648,11 +702,14 @@ Use this context as authoritative for wording and definitions.` : 'No specific c
       }, { status: openrouterResponse.status });
     }
 
+    console.log('[OPENROUTER-RAG] Starting streaming response...');
+
     // Create a readable stream
     const stream = new ReadableStream({
       async start(controller) {
         const reader = openrouterResponse.body?.getReader();
         if (!reader) {
+          console.error('[OPENROUTER-RAG] No response body reader available');
           controller.close();
           return;
         }
@@ -660,11 +717,15 @@ Use this context as authoritative for wording and definitions.` : 'No specific c
         const decoder = new TextDecoder();
         let buffer = '';
         let fullResponse = '';
+        let chunkCount = 0;
 
         try {
           while (true) {
             const { done, value } = await reader.read();
-            if (done) break;
+            if (done) {
+              console.log(`[OPENROUTER-RAG] Streaming completed after ${chunkCount} chunks`);
+              break;
+            }
 
             buffer += decoder.decode(value, { stream: true });
             const lines = buffer.split('\n');
@@ -674,6 +735,8 @@ Use this context as authoritative for wording and definitions.` : 'No specific c
               if (line.startsWith('data: ')) {
                 const data = line.slice(6);
                 if (data === '[DONE]') {
+                  console.log('[OPENROUTER-RAG] Received [DONE] signal, saving conversation...');
+                  
                   // Save assistant message and memory
                   try {
                     await threads.updateOne(
@@ -683,6 +746,7 @@ Use this context as authoritative for wording and definitions.` : 'No specific c
                         $push: { messages: { role: 'assistant', content: fullResponse, timestamp: new Date() } }
                       }
                     );
+                    console.log('[OPENROUTER-RAG] Assistant message saved to thread');
 
                     // Store chat memory embeddings for long-term retrieval
                     const items = [
@@ -703,8 +767,9 @@ Use this context as authoritative for wording and definitions.` : 'No specific c
                       createdAt: new Date()
                     }));
                     await chatMemory.insertMany(docs);
+                    console.log('[OPENROUTER-RAG] Memory embeddings stored');
                   } catch (e) {
-                    console.log('[OPENROUTER-RAG] Memory write skipped:', e);
+                    console.log('[OPENROUTER-RAG] Memory write error:', e);
                   }
                   controller.close();
                   return;
@@ -715,6 +780,7 @@ Use this context as authoritative for wording and definitions.` : 'No specific c
                   const content = parsed.choices?.[0]?.delta?.content;
                   if (content) {
                     fullResponse += content;
+                    chunkCount++;
                     controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content })}\n\n`));
                   }
                 } catch {
@@ -724,7 +790,7 @@ Use this context as authoritative for wording and definitions.` : 'No specific c
             }
           }
         } catch (error) {
-          console.error('Streaming error:', error);
+          console.error('[OPENROUTER-RAG] Streaming error:', error);
           controller.error(error);
         } finally {
           reader.releaseLock();
@@ -732,6 +798,7 @@ Use this context as authoritative for wording and definitions.` : 'No specific c
       }
     });
 
+    console.log('[OPENROUTER-RAG] ===== Request Processing Complete =====');
     return new Response(stream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
@@ -742,7 +809,9 @@ Use this context as authoritative for wording and definitions.` : 'No specific c
 
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[OPENROUTER-RAG] ===== ERROR =====');
     console.error('[OPENROUTER-RAG] Error:', error);
+    console.error('[OPENROUTER-RAG] ================');
     return NextResponse.json({ 
       error: 'Failed to process request', 
       details: message 
