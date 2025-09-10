@@ -22,15 +22,19 @@ export const findRelevantContent = async (userQuery: string, limit: number = 5, 
           queryVector: qv, 
           path: 'embedding', 
           numCandidates: 200, 
-          limit: Math.max(limit, 8), 
-          index: 'embedding_index',
-          filter: sources ? { source: { $in: sources } } : undefined
+          limit: Math.max(limit * 3, 24), // Get more results to filter from
+          index: 'embedding_index'
         } 
       },
       { $project: { _id: 0, content: 1, resourceId: 1, source: 1, score: { $meta: 'vectorSearchScore' } } }
     ]).toArray()
     if (vectorResults.length > 0) {
-      return vectorResults.slice(0, limit).map(v => ({ name: v.content, similarity: v.score, resourceId: v.resourceId, source: v.source }))
+      // Filter by sources after vector search if specified
+      const results = sources 
+        ? vectorResults.filter(result => result.source && sources.includes(result.source))
+        : vectorResults
+      
+      return results.slice(0, limit).map(v => ({ name: v.content, similarity: v.score, resourceId: v.resourceId, source: v.source }))
     }
   }
 

@@ -1,11 +1,12 @@
 'use client'
 
 import React, { useRef, useEffect, useState } from 'react'
-import { Send, Loader2, User, Bot, Mic, MicOff, Volume2, VolumeX, ChevronDown } from 'lucide-react'
+import { Send, Loader2, User, Bot, Mic, MicOff, Volume2, VolumeX, ChevronDown, Paperclip, X } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
+import Image from 'next/image'
 
 interface Message {
   id: string;
@@ -24,6 +25,20 @@ interface Chapter {
   name: string;
   sources: string[];
   topics: string[];
+}
+
+interface FileAttachment {
+  name: string;
+  data: string; // Base64 data URL
+  type: string;
+  size: number;
+}
+
+interface ImageAttachment {
+  name: string;
+  data: string; // Base64 data URL
+  type: string;
+  size: number;
 }
 
 export default function OpenRouterRAGChat() {
@@ -49,6 +64,11 @@ export default function OpenRouterRAGChat() {
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [currentlySpeakingId, setIsCurrentlySpeakingId] = useState<string | null>(null)
   const currentAudioRef = useRef<HTMLAudioElement | null>(null)
+
+  // File attachment states
+  const [attachedFiles, setAttachedFiles] = useState<FileAttachment[]>([])
+  const [attachedImages, setAttachedImages] = useState<ImageAttachment[]>([])
+  const [isDragOverChat, setIsDragOverChat] = useState(false)
 
   // Load available models and chapters on component mount
   useEffect(() => {
@@ -189,6 +209,80 @@ export default function OpenRouterRAGChat() {
     }
   }
 
+  // File handling functions
+  const handleFileUpload = (files: FileList) => {
+    Array.from(files).forEach(file => {
+      if (file.type === 'application/pdf') {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const data = e.target?.result as string
+          setAttachedFiles(prev => [...prev, {
+            name: file.name,
+            data,
+            type: file.type,
+            size: file.size
+          }])
+        }
+        reader.readAsDataURL(file)
+      } else if (file.type.startsWith('image/')) {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const data = e.target?.result as string
+          setAttachedImages(prev => [...prev, {
+            name: file.name,
+            data,
+            type: file.type,
+            size: file.size
+          }])
+        }
+        reader.readAsDataURL(file)
+      }
+    })
+  }
+
+  const removeFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const removeImage = (index: number) => {
+    setAttachedImages(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOverChat(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOverChat(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOverChat(false)
+    const files = e.dataTransfer.files
+    if (files.length > 0) {
+      handleFileUpload(files)
+    }
+  }
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items
+    const files: File[] = []
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      if (item.kind === 'file' && (item.type === 'application/pdf' || item.type.startsWith('image/'))) {
+        const file = item.getAsFile()
+        if (file) files.push(file)
+      }
+    }
+    if (files.length > 0) {
+      const fileList = new DataTransfer()
+      files.forEach(file => fileList.items.add(file))
+      handleFileUpload(fileList.files)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -223,6 +317,8 @@ export default function OpenRouterRAGChat() {
           messages: [...messages, userMessage],
           selectedModel,
           selectedChapter,
+          files: attachedFiles,
+          images: attachedImages,
         }),
       })
 
@@ -262,6 +358,10 @@ export default function OpenRouterRAGChat() {
             }
           }
         }
+        
+        // Clear attachments after successful send
+        setAttachedFiles([])
+        setAttachedImages([])
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
         throw new Error(errorData.details || errorData.error || `HTTP ${response.status}`)
@@ -320,7 +420,15 @@ export default function OpenRouterRAGChat() {
   }
 
   return (
-    <div className="flex h-[60vh] flex-col rounded-xl bg-gray-50 shadow-inner">
+    <div 
+      className={`flex h-[60vh] flex-col rounded-xl bg-gray-50 shadow-inner transition-colors ${
+        isDragOverChat ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''
+      }`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      onPaste={handlePaste}
+    >
       {/* Model and Chapter Selection Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 rounded-t-xl">
         <div className="flex items-center justify-between gap-4">
@@ -352,7 +460,6 @@ export default function OpenRouterRAGChat() {
                       }`}
                     >
                       <div className="font-medium">{chapter.name}</div>
-                      <div className="text-xs text-gray-500">{chapter.topics.length} topics</div>
                     </button>
                   ))}
                 </div>
@@ -398,13 +505,25 @@ export default function OpenRouterRAGChat() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 relative">
+        {/* Drag overlay */}
+        {isDragOverChat && (
+          <div className="absolute inset-0 flex items-center justify-center bg-blue-50/90 backdrop-blur-sm z-10 rounded-xl">
+            <div className="text-center bg-white p-8 rounded-lg shadow-lg border-2 border-dashed border-blue-300">
+              <Paperclip className="h-12 w-12 text-blue-500 mx-auto mb-4" />
+              <p className="text-blue-600 font-semibold text-lg">Drop PDF files or images anywhere to upload</p>
+              <p className="text-blue-500 text-sm mt-2">You can also paste files with Ctrl+V</p>
+            </div>
+          </div>
+        )}
+
         {messages.length === 0 && (
           <div className="flex items-center justify-center h-full">
             <div className="text-center text-gray-500">
               <Bot className="h-12 w-12 mx-auto mb-4 text-gray-300" />
               <h3 className="text-lg font-medium mb-2">OpenRouter RAG Tutor</h3>
               <p className="text-sm">
-                Select a chapter and model above, then start asking questions about the course material!
+                Select a chapter and model above, then start asking questions about the course material!<br/>
+                You can drag and drop PDF files or images, or paste them with Ctrl+V.
               </p>
             </div>
           </div>
@@ -445,6 +564,45 @@ export default function OpenRouterRAGChat() {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* File attachments display */}
+      {(attachedFiles.length > 0 || attachedImages.length > 0) && (
+        <div className="px-4 py-2 bg-gray-100 border-t border-gray-200">
+          <div className="flex flex-wrap gap-2">
+            {attachedFiles.map((file, index) => (
+              <div key={`file-${index}`} className="flex items-center bg-white rounded-lg px-3 py-2 text-sm border">
+                <Paperclip className="h-4 w-4 mr-2 text-gray-500" />
+                <span className="text-gray-700">{file.name}</span>
+                <button
+                  onClick={() => removeFile(index)}
+                  className="ml-2 text-gray-400 hover:text-red-500"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+            {attachedImages.map((image, index) => (
+              <div key={`image-${index}`} className="flex items-center bg-white rounded-lg px-3 py-2 text-sm border">
+                <div className="h-6 w-6 mr-2 relative">
+                  <Image
+                    src={image.data}
+                    alt={image.name}
+                    fill
+                    className="object-cover rounded"
+                  />
+                </div>
+                <span className="text-gray-700">{image.name}</span>
+                <button
+                  onClick={() => removeImage(index)}
+                  className="ml-2 text-gray-400 hover:text-red-500"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="border-t border-gray-200 bg-white p-4 rounded-b-xl">
         <div className="flex rounded-full bg-gray-100 shadow-inner">
           {/* Mic button for speech-to-text */}
@@ -477,6 +635,15 @@ export default function OpenRouterRAGChat() {
             disabled={isLoading}
           />
 
+          {/* File input button */}
+          <button
+            type="button"
+            onClick={() => document.getElementById('file-input')?.click()}
+            className="p-3 text-gray-600 hover:text-gray-800 transition-colors"
+          >
+            <Paperclip className="h-5 w-5" />
+          </button>
+
           {/* Send button */}
           <button
             type="submit"
@@ -491,6 +658,16 @@ export default function OpenRouterRAGChat() {
           </button>
         </div>
       </form>
+
+      {/* Hidden file input */}
+      <input
+        id="file-input"
+        type="file"
+        accept=".pdf,image/*"
+        multiple
+        onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
+        className="hidden"
+      />
     </div>
   )
 }

@@ -136,6 +136,8 @@ export async function POST(req: Request) {
       selectedModel: string;
       selectedChapter: string;
       threadId?: string;
+      files?: Array<{ name: string; data: string; type: string; size: number }>;
+      images?: Array<{ name: string; data: string; type: string; size: number }>;
     } = await req.json();
     
     const selectedModel = input.selectedModel || 'openai/gpt-4o';
@@ -145,6 +147,7 @@ export async function POST(req: Request) {
     console.log(`[OPENROUTER-RAG] Model: ${selectedModel}, Chapter: ${selectedChapter}`);
     console.log(`[OPENROUTER-RAG] API Key present: ${!!process.env.OPENROUTER_API_KEY}`);
     console.log(`[OPENROUTER-RAG] Messages count: ${input.messages.length}`);
+    console.log(`[OPENROUTER-RAG] Files: ${input.files?.length || 0}, Images: ${input.images?.length || 0}`);
     
     // Check if API key is present
     if (!process.env.OPENROUTER_API_KEY) {

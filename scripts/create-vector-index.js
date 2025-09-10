@@ -31,7 +31,12 @@ async function main() {
   const chatMemory = db.collection('chat_memory')
   const dims = dimsForModel(EMBED_MODEL)
 
-  const defn = { fields: [{ type: 'vector', path: 'embedding', numDimensions: dims, similarity: 'cosine' }] }
+  const defn = { 
+    fields: [
+      { type: 'vector', path: 'embedding', numDimensions: dims, similarity: 'cosine' },
+      { type: 'filter', path: 'source' }
+    ] 
+  }
 
   // embeddings index
   const embName = 'embedding_index'
