@@ -69,6 +69,9 @@ export default function OpenRouterRAGChat() {
   const [attachedFiles, setAttachedFiles] = useState<FileAttachment[]>([])
   const [attachedImages, setAttachedImages] = useState<ImageAttachment[]>([])
   const [isDragOverChat, setIsDragOverChat] = useState(false)
+  
+  // Thread management for memory
+  const [threadId, setThreadId] = useState<string | null>(null)
 
   // Load available models and chapters on component mount
   useEffect(() => {
@@ -317,6 +320,7 @@ export default function OpenRouterRAGChat() {
           messages: [...messages, userMessage],
           selectedModel,
           selectedChapter,
+          threadId: threadId || undefined,
           files: attachedFiles,
           images: attachedImages,
         }),
@@ -357,6 +361,15 @@ export default function OpenRouterRAGChat() {
               }
             }
           }
+        }
+        
+        // Extract threadId from response headers or set a new one
+        const responseThreadId = response.headers.get('x-thread-id')
+        if (responseThreadId) {
+          setThreadId(responseThreadId)
+        } else if (!threadId) {
+          // Generate a new threadId if we don't have one
+          setThreadId('session-' + Date.now())
         }
         
         // Clear attachments after successful send

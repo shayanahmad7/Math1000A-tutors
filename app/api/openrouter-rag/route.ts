@@ -737,7 +737,7 @@ Use this context as authoritative for wording and definitions.` : 'No specific c
                 if (data === '[DONE]') {
                   console.log('[OPENROUTER-RAG] Received [DONE] signal, saving conversation...');
                   
-                  // Save assistant message and memory
+                  // Save assistant message to thread
                   try {
                     await threads.updateOne(
                       { sessionId: threadId, chapter: selectedChapter },
@@ -747,8 +747,8 @@ Use this context as authoritative for wording and definitions.` : 'No specific c
                       }
                     );
                     console.log('[OPENROUTER-RAG] Assistant message saved to thread');
-
-                    // Store chat memory embeddings for long-term retrieval
+                    
+                    // Store chat memory embeddings for long-term retrieval (exactly like original RAG)
                     const items = [
                       { role: 'user' as const, content: userQuery },
                       { role: 'assistant' as const, content: fullResponse }
@@ -767,10 +767,11 @@ Use this context as authoritative for wording and definitions.` : 'No specific c
                       createdAt: new Date()
                     }));
                     await chatMemory.insertMany(docs);
-                    console.log('[OPENROUTER-RAG] Memory embeddings stored');
+                    console.log('[OPENROUTER-RAG] Memory embeddings stored successfully');
                   } catch (e) {
-                    console.log('[OPENROUTER-RAG] Memory write error:', e);
+                    console.log('[OPENROUTER-RAG] Thread update or memory storage error:', e);
                   }
+                  
                   controller.close();
                   return;
                 }
@@ -798,12 +799,16 @@ Use this context as authoritative for wording and definitions.` : 'No specific c
       }
     });
 
+    // We'll handle memory storage after streaming completes
+    // For now, just return the stream
+
     console.log('[OPENROUTER-RAG] ===== Request Processing Complete =====');
     return new Response(stream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
+        'X-Thread-ID': threadId,
       },
     });
 
