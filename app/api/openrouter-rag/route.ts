@@ -83,7 +83,7 @@ const AVAILABLE_MODELS = {
 const CHAPTER_CONFIGS = {
   'real-numbers': {
     name: 'Real Numbers (Chapter 1)',
-    sources: ['1_Real Numbers_ Notes', '1_Real Numbers_Exercises'],
+    sources: ['1_Real_Numbers_Notes', '1_Real_Numbers_Exercises'],
     topics: [
       'Classification of real numbers (natural, integers, rational, irrational, real)',
       'Properties of real numbers (commutative, associative, distributive, identities, inverses)',
