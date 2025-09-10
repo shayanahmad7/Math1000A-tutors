@@ -1,10 +1,10 @@
-import RAGChatMultiModel from '@/app/components/RAGChatMultiModel';
-import Link from 'next/link';
-import { Home } from 'lucide-react';
+import RAGChat from '@/app/components/RAGChat'
+import Link from 'next/link'
+import { Home } from 'lucide-react'
 
-export default function MultiModelTutorPage() {
+export default function RAGTutorPage() {
   return (
-    <main className="flex min-h-screen flex-col bg-gradient-to-br from-green-100 via-white to-blue-100">
+    <main className="flex min-h-screen flex-col bg-gradient-to-br from-blue-100 via-white to-purple-100">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-6xl mx-auto px-4 py-4">
@@ -21,17 +21,13 @@ export default function MultiModelTutorPage() {
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-4xl rounded-2xl bg-white p-6 shadow-2xl">
           <div className="text-center mb-6">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Multi-Model RAG Tutor</h2>
-            <p className="text-gray-600">Compare OpenAI and Google Gemini models for math tutoring with RAG</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">OpenAI RAG Tutor</h2>
+            <p className="text-gray-600">Your specialized tutor for mastering real numbers in precalculus</p>
           </div>
           
-          <RAGChatMultiModel
-            chapter="math1000a"
-            title="Multi-Model Math Tutor"
-            description="Real Numbers - Choose your preferred AI model"
-          />
+          <RAGChat />
         </div>
       </div>
     </main>
-  );
+  )
 }

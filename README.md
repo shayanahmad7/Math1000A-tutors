@@ -1,6 +1,6 @@
-# Chapter 1: Real Numbers - AI Tutor
+# NYUAD Math 1000A AI Tutors
 
-A specialized AI tutor for the "Real Numbers" unit of precalculus, built with Next.js, MongoDB Atlas Vector Search, and OpenAI GPT-4o-mini. This tutor uses Retrieval-Augmented Generation (RAG) to provide contextual responses based on course materials.
+Experimental AI tutoring system for NYUAD's Math 1000A Precalculus course. Features specialized tutors for the "Real Numbers" unit, multi-model AI chats, and access to 400+ AI models through OpenRouter. Built with Next.js, MongoDB Atlas Vector Search, and various AI providers.
 
 ## Features
 

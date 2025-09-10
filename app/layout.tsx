@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Chapter 1: Real Numbers - AI Tutor",
-  description: "AI-powered tutor for the Real Numbers unit of precalculus",
+  title: "NYUAD Math 1000A AI Tutors",
+  description: "Experimental AI tutoring system for NYUAD's Math 1000A Precalculus course",
 };
 
 export default function RootLayout({

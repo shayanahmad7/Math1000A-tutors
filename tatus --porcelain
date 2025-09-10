@@ -1,0 +1,5 @@
+[33m7e3afaa[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fix build error: remove export from API route (Next.js routes don't allow exports)
+[33md148047[m Add multi-model RAG tutor with OpenAI and Gemini support, fix lint issues
+[33mffeedf5[m Add speech-to-text and text-to-speech features with OpenAI Whisper and TTS APIs
+[33m4b3a805[m Implement full conversational memory system with RAG + thread management
+[33m9837ce3[m Fix all TypeScript and ESLint errors for Vercel deployment
