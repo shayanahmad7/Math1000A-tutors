@@ -83,7 +83,7 @@ const AVAILABLE_MODELS = {
 const CHAPTER_CONFIGS = {
   'real-numbers': {
     name: 'Real Numbers (Chapter 1)',
-    sources: ['1_Real_Numbers_Notes', '1_Real_Numbers_Exercises'],
+    sources: ['1_Real Numbers_ Notes', '1_Real Numbers_Exercises'],
     topics: [
       'Classification of real numbers (natural, integers, rational, irrational, real)',
       'Properties of real numbers (commutative, associative, distributive, identities, inverses)',
@@ -587,11 +587,11 @@ export async function POST(req: Request) {
       console.log('[OPENROUTER-RAG] Memory retrieval error:', e);
     }
 
-    // Search for relevant content from PDFs (temporarily without source filtering to debug)
+    // Search for relevant content from PDFs (filter by chapter sources)
     console.log('[OPENROUTER-RAG] Starting hybrid search for relevant content...');
     console.log(`[OPENROUTER-RAG] Searching in sources: ${chapterConfig.sources.join(', ')}`);
     
-    const searchResults = await findRelevantContent(userQuery, 4);
+    const searchResults = await findRelevantContent(userQuery, 4, chapterConfig.sources);
     console.log(`[OPENROUTER-RAG] Search Results:`);
     console.log(`  - Found ${searchResults.length} relevant chunks`);
     
