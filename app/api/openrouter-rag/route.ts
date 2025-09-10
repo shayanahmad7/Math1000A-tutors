@@ -1,0 +1,434 @@
+import { findRelevantContent, generateEmbedding } from '@/lib/ai/embedding'
+import { getCollections } from '@/lib/db/mongodb'
+
+// Next.js API route configuration
+export const maxDuration = 30
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
+// Latest models on OpenRouter (expanded with newest models)
+const AVAILABLE_MODELS = {
+  openai: [
+    { id: 'openai/gpt-4o', name: 'GPT-4o', provider: 'OpenAI' },
+    { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI' },
+    { id: 'openai/gpt-4-turbo', name: 'GPT-4 Turbo', provider: 'OpenAI' },
+    { id: 'openai/gpt-4o-2024-08-06', name: 'GPT-4o (Aug 2024)', provider: 'OpenAI' },
+    { id: 'openai/gpt-3.5-turbo', name: 'GPT-3.5 Turbo', provider: 'OpenAI' }
+  ],
+  anthropic: [
+    { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', provider: 'Anthropic' },
+    { id: 'anthropic/claude-3.5-haiku', name: 'Claude 3.5 Haiku', provider: 'Anthropic' },
+    { id: 'anthropic/claude-3-opus', name: 'Claude 3 Opus', provider: 'Anthropic' },
+    { id: 'anthropic/claude-3-sonnet', name: 'Claude 3 Sonnet', provider: 'Anthropic' },
+    { id: 'anthropic/claude-3-haiku', name: 'Claude 3 Haiku', provider: 'Anthropic' },
+    { id: 'anthropic/claude-2.1', name: 'Claude 2.1', provider: 'Anthropic' }
+  ],
+  google: [
+    { id: 'google/gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash', provider: 'Google' },
+    { id: 'google/gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Google' },
+    { id: 'google/gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'Google' },
+    { id: 'google/gemini-1.5-pro-002', name: 'Gemini 1.5 Pro (Latest)', provider: 'Google' },
+    { id: 'google/gemini-1.0-pro', name: 'Gemini 1.0 Pro', provider: 'Google' }
+  ],
+  meta: [
+    { id: 'meta-llama/llama-3.1-405b-instruct', name: 'Llama 3.1 405B', provider: 'Meta' },
+    { id: 'meta-llama/llama-3.1-70b-instruct', name: 'Llama 3.1 70B', provider: 'Meta' },
+    { id: 'meta-llama/llama-3.1-8b-instruct', name: 'Llama 3.1 8B', provider: 'Meta' },
+    { id: 'meta-llama/llama-3.2-90b-vision-instruct', name: 'Llama 3.2 90B Vision', provider: 'Meta' },
+    { id: 'meta-llama/llama-3.2-11b-vision-instruct', name: 'Llama 3.2 11B Vision', provider: 'Meta' },
+    { id: 'meta-llama/llama-3.2-3b-instruct', name: 'Llama 3.2 3B', provider: 'Meta' }
+  ],
+  mistral: [
+    { id: 'mistralai/mistral-large', name: 'Mistral Large', provider: 'Mistral' },
+    { id: 'mistralai/mixtral-8x7b-instruct', name: 'Mixtral 8x7B', provider: 'Mistral' },
+    { id: 'mistralai/mixtral-8x22b-instruct', name: 'Mixtral 8x22B', provider: 'Mistral' },
+    { id: 'mistralai/mistral-7b-instruct', name: 'Mistral 7B', provider: 'Mistral' },
+    { id: 'mistralai/mistral-nemo', name: 'Mistral Nemo', provider: 'Mistral' }
+  ],
+  microsoft: [
+    { id: 'microsoft/phi-4-multimodal-instruct', name: 'Phi-4 Multimodal Instruct', provider: 'Microsoft' },
+    { id: 'microsoft/phi-4-mini-instruct', name: 'Phi-4 Mini', provider: 'Microsoft' },
+    { id: 'microsoft/phi-4-mini-vision-instruct', name: 'Phi-4 Mini Vision', provider: 'Microsoft' },
+    { id: 'microsoft/phi-3-medium-128k-instruct', name: 'Phi-3 Medium', provider: 'Microsoft' },
+    { id: 'microsoft/phi-3-mini-128k-instruct', name: 'Phi-3 Mini', provider: 'Microsoft' },
+    { id: 'microsoft/phi-3.5-mini-instruct', name: 'Phi-3.5 Mini', provider: 'Microsoft' }
+  ],
+  gemma: [
+    { id: 'google/gemma-3-27b-it', name: 'Gemma 3 27B', provider: 'Google' },
+    { id: 'google/gemma-3-9b-it', name: 'Gemma 3 9B', provider: 'Google' },
+    { id: 'google/gemma-2-27b-it', name: 'Gemma 2 27B', provider: 'Google' },
+    { id: 'google/gemma-2-9b-it', name: 'Gemma 2 9B', provider: 'Google' },
+    { id: 'google/gemma-2-2b-it', name: 'Gemma 2 2B', provider: 'Google' }
+  ],
+  deepseek: [
+    { id: 'deepseek/deepseek-chat', name: 'DeepSeek Chat', provider: 'DeepSeek' },
+    { id: 'deepseek/deepseek-coder', name: 'DeepSeek Coder', provider: 'DeepSeek' },
+    { id: 'deepseek/deepseek-math', name: 'DeepSeek Math', provider: 'DeepSeek' }
+  ],
+  cohere: [
+    { id: 'cohere/command-r-plus', name: 'Command R+', provider: 'Cohere' },
+    { id: 'cohere/command-r', name: 'Command R', provider: 'Cohere' },
+    { id: 'cohere/command-light', name: 'Command Light', provider: 'Cohere' }
+  ],
+  qwen: [
+    { id: 'qwen/qwen-2.5-72b-instruct', name: 'Qwen 2.5 72B', provider: 'Qwen' },
+    { id: 'qwen/qwen-2.5-32b-instruct', name: 'Qwen 2.5 32B', provider: 'Qwen' },
+    { id: 'qwen/qwen-2.5-14b-instruct', name: 'Qwen 2.5 14B', provider: 'Qwen' },
+    { id: 'qwen/qwen-2.5-7b-instruct', name: 'Qwen 2.5 7B', provider: 'Qwen' }
+  ]
+}
+
+// Chapter configurations
+const CHAPTER_CONFIGS = {
+  'real-numbers': {
+    name: 'Real Numbers',
+    sources: ['1_Real_Numbers_Notes', '1_Real_Numbers_Exercises'],
+    topics: [
+      'Classification of real numbers (natural, integers, rational, irrational, real)',
+      'Properties of real numbers (commutative, associative, distributive, identities, inverses)',
+      'Properties of negatives',
+      'Fractions and operations (including LCD and prime factorization)',
+      'Real number line and interval notation',
+      'Absolute value and distance on the real line'
+    ]
+  },
+  'exponents': {
+    name: 'Exponents',
+    sources: ['2_Exponents_Notes', '2_Exponents_Exercises'],
+    topics: [
+      'Exponent rules and properties',
+      'Zero and negative exponents',
+      'Scientific notation',
+      'Exponential expressions and simplification',
+      'Power of a power, product, and quotient rules',
+      'Rational exponents and radical expressions'
+    ]
+  },
+  'radicals': {
+    name: 'Radicals',
+    sources: ['3_Radicals_Notes', '3_Radicals_Exercises'],
+    topics: [
+      'Square roots and nth roots',
+      'Simplifying radical expressions',
+      'Rationalizing denominators',
+      'Operations with radicals (addition, subtraction, multiplication, division)',
+      'Radical equations and solving techniques',
+      'Rational exponents and radical notation'
+    ]
+  }
+}
+
+/**
+ * OpenRouter RAG chat completion endpoint
+ * 
+ * This endpoint:
+ * 1. Receives user messages with model and chapter selection
+ * 2. Performs RAG search on selected chapter content
+ * 3. Sends requests to OpenRouter API with context
+ * 4. Returns AI responses with streaming support
+ */
+export async function POST(req: Request) {
+  try {
+    // Parse incoming message data
+    const input: { 
+      messages: Array<{ role: 'user'|'assistant'; content: string }>; 
+      selectedModel: string;
+      selectedChapter: string;
+      threadId?: string;
+    } = await req.json();
+    
+    const selectedModel = input.selectedModel || 'openai/gpt-4o';
+    const selectedChapter = input.selectedChapter || 'real-numbers';
+    const threadId = input.threadId || 'session-' + Date.now();
+    
+    console.log(`[OPENROUTER-RAG] Model: ${selectedModel}, Chapter: ${selectedChapter}`);
+    console.log(`[OPENROUTER-RAG] API Key present: ${!!process.env.OPENROUTER_API_KEY}`);
+    console.log(`[OPENROUTER-RAG] Messages count: ${input.messages.length}`);
+    
+    // Check if API key is present
+    if (!process.env.OPENROUTER_API_KEY) {
+      console.error('[OPENROUTER-RAG] Missing OPENROUTER_API_KEY environment variable');
+      return NextResponse.json({ 
+        error: 'OpenRouter API key not configured',
+        details: 'Please set OPENROUTER_API_KEY in your environment variables'
+      }, { status: 500 });
+    }
+
+    // Validate model selection
+    const allModels = Object.values(AVAILABLE_MODELS).flat();
+    const isValidModel = allModels.some(model => model.id === selectedModel);
+    if (!isValidModel) {
+      return NextResponse.json({ 
+        error: 'Invalid model selection' 
+      }, { status: 400 });
+    }
+
+    // Validate chapter selection
+    const chapterConfig = CHAPTER_CONFIGS[selectedChapter as keyof typeof CHAPTER_CONFIGS];
+    if (!chapterConfig) {
+      return NextResponse.json({ 
+        error: 'Invalid chapter selection' 
+      }, { status: 400 });
+    }
+
+    const lastMessage = input.messages[input.messages.length - 1];
+    const userQuery = lastMessage?.content || '';
+
+    // Load thread history and persist the new user message
+    const { threads, chatMemory, threadSummaries } = await getCollections();
+    await threads.updateOne(
+      { sessionId: threadId, chapter: selectedChapter },
+      {
+        $setOnInsert: { createdAt: new Date() },
+        $set: { updatedAt: new Date() },
+        $push: { messages: { role: 'user', content: userQuery, timestamp: new Date() } }
+      },
+      { upsert: true }
+    );
+
+    const threadDoc = await threads.findOne({ sessionId: threadId, chapter: selectedChapter });
+    const turnIndex = (threadDoc?.messages?.length || 0) + 1;
+    const history = (threadDoc?.messages || []).slice(-12); // keep recent turns for chronology
+
+    // Retrieve long-term memory: top N prior exchanges semantically related to this query
+    let memoryContext = '';
+    try {
+      const priorCount = await chatMemory.countDocuments({ threadId });
+      if (priorCount > 0) {
+        const queryVec = await generateEmbedding(userQuery);
+        const memoryHits = await chatMemory.aggregate<{
+          content: string;
+          role: 'user'|'assistant';
+          score: number;
+        }>([
+          {
+            $vectorSearch: {
+              queryVector: queryVec,
+              path: 'embedding',
+              numCandidates: 100,
+              limit: 6,
+              index: 'chat_memory_index',
+              filter: { threadId }
+            }
+          },
+          { $project: { _id: 0, content: 1, role: 1, score: { $meta: 'vectorSearchScore' } } }
+        ]).toArray();
+        if (memoryHits.length > 0) {
+          memoryContext = memoryHits.map(h => `[${h.role}] ${h.content}`).join('\n');
+        }
+      }
+    } catch (e) {
+      console.log('[OPENROUTER-RAG] Memory retrieval skipped:', e);
+    }
+
+    // Search for relevant content from PDFs (filter by chapter sources)
+    const searchResults = await findRelevantContent(userQuery, 4, chapterConfig.sources);
+    console.log('[OPENROUTER-RAG] Found', searchResults.length, 'relevant results');
+
+    // Prepare context from search results
+    let contextText = '';
+    if (searchResults.length > 0) {
+      contextText = searchResults.map(r => `${r.source ? `[${r.source}]` : ''}\n${r.name}`).join('\n\n');
+    }
+
+    // Create system prompt based on chapter
+    const systemPrompt = `You are a specialized AI math tutor for the "${chapterConfig.name}" unit of a precalculus course at NYU Abu Dhabi. Your only role is to teach and help students master the content of this unit using the provided course materials. You must not reference or use any other source of information, examples, or methods. You must not mention file names or professors' names.
+
+Your job is to:  
+Teach only the following topics from this unit:  
+${chapterConfig.topics.map(topic => `- ${topic}`).join('\n')}
+
+Always engage the student by:  
+- Starting with a friendly greeting and listing these topics if they say something general like "hi" or "hello," or if they seem unsure.  
+- Asking which topic they want to work on first, or if they'd like you to guide them step by step.  
+- If they pick a topic, teach that topic only using the course notes and give them practice questions from the exercises document to work on.  
+- Never give final answers directly for exercises—only provide hints and guiding questions to help them think through each problem.  
+- Check for understanding frequently and break down explanations into small, clear steps.  
+- If they want to switch topics or if the conversation is becoming too broad, politely suggest creating a new chat to stay organized.
+
+When displaying math expressions, format them using LaTeX-style notation so that they render clearly for the student.
+
+If a student asks to draw a graph, please write code to draw the graph, and then always ask them to click on the run button to see it, and remind them it may take about 15 seconds to run it. this is an interface thing, please just tell them to click on the run button.
+
+Use Markdown or LaTeX for math (e.g. x^2, x^{2}, $x^2$).
+
+Never answer questions outside of this unit, no matter what the student asks. Politely tell them that's beyond this tutor's role and suggest opening a new chat for that topic.
+
+Never provide information about topics not covered in this unit, even if the student insists or seems to want more. Only stick to the content of this unit.
+
+Your mission is to ensure the student arrives in class fully prepared on this unit and has truly mastered the concepts and exercises in the course materials.
+
+${contextText ? `Context extracted from course materials:
+
+${contextText}
+
+Use this context as authoritative for wording and definitions.` : 'No specific course passages were found for this query. Answer using only the ' + chapterConfig.name + ' unit knowledge.'}`;
+
+    const summaryDoc = await threadSummaries.findOne({ threadId, chapter: selectedChapter });
+    const summaryBlock = summaryDoc?.summary ? `\n\nConversation summary (so far):\n${summaryDoc.summary}` : '';
+    const memoryBlock = memoryContext
+      ? `\n\nRelevant prior conversation excerpts:\n${memoryContext}`
+      : '';
+
+    // Prepare messages for OpenRouter
+    const openrouterMessages = [
+      { role: 'system', content: systemPrompt + summaryBlock + memoryBlock },
+      ...history.map(m => ({ role: m.role, content: m.content })),
+      { role: 'user', content: userQuery }
+    ];
+
+    // Call OpenRouter API with streaming
+    const openrouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        'X-Title': 'Math1000A OpenRouter RAG Tutor'
+      },
+      body: JSON.stringify({
+        model: selectedModel,
+        messages: openrouterMessages,
+        temperature: 0.3,
+        max_tokens: 2000,
+        stream: true
+      })
+    });
+
+    if (!openrouterResponse.ok) {
+      const errorData = await openrouterResponse.json().catch(() => ({ error: 'Failed to parse error response' }));
+      console.error('[OPENROUTER-RAG] API Error:', {
+        status: openrouterResponse.status,
+        statusText: openrouterResponse.statusText,
+        error: errorData
+      });
+      return NextResponse.json({ 
+        error: 'OpenRouter API error',
+        details: errorData.error?.message || errorData.details || `HTTP ${openrouterResponse.status}: ${openrouterResponse.statusText}`
+      }, { status: openrouterResponse.status });
+    }
+
+    // Create a readable stream
+    const stream = new ReadableStream({
+      async start(controller) {
+        const reader = openrouterResponse.body?.getReader();
+        if (!reader) {
+          controller.close();
+          return;
+        }
+
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let fullResponse = '';
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6);
+                if (data === '[DONE]') {
+                  // Save assistant message and memory
+                  try {
+                    await threads.updateOne(
+                      { sessionId: threadId, chapter: selectedChapter },
+                      {
+                        $set: { updatedAt: new Date() },
+                        $push: { messages: { role: 'assistant', content: fullResponse, timestamp: new Date() } }
+                      }
+                    );
+
+                    // Store chat memory embeddings for long-term retrieval
+                    const items = [
+                      { role: 'user' as const, content: userQuery },
+                      { role: 'assistant' as const, content: fullResponse }
+                    ];
+                    const embeddings = await Promise.all(items.map(async (it) => ({
+                      role: it.role,
+                      content: it.content,
+                      embedding: await generateEmbedding(it.content)
+                    })));
+                    const docs = embeddings.map((e, idx) => ({
+                      threadId,
+                      role: e.role,
+                      turn: turnIndex + idx,
+                      content: e.content,
+                      embedding: e.embedding,
+                      createdAt: new Date()
+                    }));
+                    await chatMemory.insertMany(docs);
+                  } catch (e) {
+                    console.log('[OPENROUTER-RAG] Memory write skipped:', e);
+                  }
+                  controller.close();
+                  return;
+                }
+
+                try {
+                  const parsed = JSON.parse(data);
+                  const content = parsed.choices?.[0]?.delta?.content;
+                  if (content) {
+                    fullResponse += content;
+                    controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content })}\n\n`));
+                  }
+                } catch {
+                  // Skip invalid JSON
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Streaming error:', error);
+          controller.error(error);
+        } finally {
+          reader.releaseLock();
+        }
+      }
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
+
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[OPENROUTER-RAG] Error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to process request', 
+      details: message 
+    }, { status: 500 });
+  }
+}
+
+// Fetch available models
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const type = searchParams.get('type');
+  
+  if (type === 'models') {
+    return NextResponse.json({ models: AVAILABLE_MODELS });
+  }
+  
+  if (type === 'chapters') {
+    return NextResponse.json({ 
+      chapters: Object.entries(CHAPTER_CONFIGS).map(([key, config]) => ({
+        id: key,
+        name: config.name,
+        sources: config.sources,
+        topics: config.topics
+      }))
+    });
+  }
+  
+  return NextResponse.json({ error: 'Invalid request type' }, { status: 400 });
+}

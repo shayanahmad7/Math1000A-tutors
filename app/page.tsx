@@ -26,7 +26,7 @@ export default function Home() {
         </div>
 
         {/* Tutor Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
           {/* OpenAI RAG Tutor */}
           <Link href="/rag-tutor" className="group">
             <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-gray-200 group-hover:border-blue-300">
@@ -59,21 +59,37 @@ export default function Home() {
             </div>
           </Link>
 
-          {/* OpenRouter Chat */}
-          <Link href="/openrouter-tutor" className="group">
-            <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-gray-200 group-hover:border-purple-300">
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">OpenRouter AI Chat</h3>
-              <p className="text-sm text-gray-500 mb-4">400+ AI Models</p>
-              <p className="text-gray-600 mb-4">
-                Access 400+ AI models from all major providers including OpenAI, Anthropic, Google, Meta, Mistral, and more.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs">400+ Models</span>
-                <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs">All Providers</span>
-                <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs">PDF Upload</span>
-              </div>
-            </div>
-          </Link>
+                      {/* OpenRouter Chat */}
+                      <Link href="/openrouter-tutor" className="group">
+                        <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-gray-200 group-hover:border-purple-300">
+                          <h3 className="text-xl font-semibold text-gray-800 mb-2">OpenRouter AI Chat</h3>
+                          <p className="text-sm text-gray-500 mb-4">400+ AI Models</p>
+                          <p className="text-gray-600 mb-4">
+                            Access 400+ AI models from all major providers including OpenAI, Anthropic, Google, Meta, Mistral, and more.
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs">400+ Models</span>
+                            <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs">All Providers</span>
+                            <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs">PDF Upload</span>
+                          </div>
+                        </div>
+                      </Link>
+
+                      {/* OpenRouter RAG Tutor */}
+                      <Link href="/openrouter-rag-tutor" className="group">
+                        <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-gray-200 group-hover:border-indigo-300">
+                          <h3 className="text-xl font-semibold text-gray-800 mb-2">OpenRouter RAG Tutor</h3>
+                          <p className="text-sm text-gray-500 mb-4">400+ Models + RAG</p>
+                          <p className="text-gray-600 mb-4">
+                            Combine 400+ AI models with RAG-powered course material assistance. Select any chapter and model for specialized tutoring.
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-xs">400+ Models</span>
+                            <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-xs">RAG Powered</span>
+                            <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-xs">Multi-Chapter</span>
+                          </div>
+                        </div>
+                      </Link>
         </div>
       </div>
     </main>
