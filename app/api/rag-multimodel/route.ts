@@ -19,19 +19,19 @@ const gemini = new GoogleGenAI({
 });
 
 // Available models for selection (used in frontend component)
-const AVAILABLE_MODELS = {
-  openai: [
-    { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' },
-    { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI' },
-    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', provider: 'OpenAI' }
-  ],
-  gemini: [
-    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google' },
-    { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google' },
-    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'Google' },
-    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Google' }
-  ]
-};
+// const AVAILABLE_MODELS = {
+//   openai: [
+//     { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' },
+//     { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI' },
+//     { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', provider: 'OpenAI' }
+//   ],
+//   gemini: [
+//     { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google' },
+//     { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google' },
+//     { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'Google' },
+//     { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Google' }
+//   ]
+// };
 
 /**
  * Multi-model RAG-powered chat endpoint

@@ -6,6 +6,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
+import Image from 'next/image'
 
 // Latest models on OpenRouter (expanded with newest models)
 const AVAILABLE_MODELS = {
@@ -112,7 +113,6 @@ export default function OpenRouterChat() {
   // File upload state
   const [attachedFiles, setAttachedFiles] = useState<FileAttachment[]>([])
   const [attachedImages, setAttachedImages] = useState<ImageAttachment[]>([])
-  const [isDragOver, setIsDragOver] = useState(false)
   const [isDragOverChat, setIsDragOverChat] = useState(false)
 
   // Speech-to-text states
@@ -412,7 +412,7 @@ export default function OpenRouterChat() {
                     )
                   )
                 }
-              } catch (e) {
+              } catch {
                 // Skip invalid JSON
               }
             }
@@ -648,7 +648,14 @@ export default function OpenRouterChat() {
             ))}
             {attachedImages.map((image, index) => (
               <div key={`image-${index}`} className="flex items-center bg-white rounded-lg px-3 py-2 text-sm border">
-                <img src={image.data} alt={image.name} className="h-6 w-6 mr-2 object-cover rounded" />
+                <div className="h-6 w-6 mr-2 relative">
+                  <Image 
+                    src={image.data} 
+                    alt={image.name} 
+                    fill
+                    className="object-cover rounded" 
+                  />
+                </div>
                 <span className="text-gray-700">{image.name}</span>
                 <button
                   onClick={() => removeImage(index)}

@@ -20,7 +20,7 @@ export default function Home() {
             Choose Your AI Tutor
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Experimental AI tutoring system for NYUAD's Math 1000A Precalculus course. 
+                        Experimental AI tutoring system for NYUAD&apos;s Math 1000A Precalculus course.
             Access specialized math tutors, multi-model AI chats, and 400+ AI models through OpenRouter.
           </p>
         </div>

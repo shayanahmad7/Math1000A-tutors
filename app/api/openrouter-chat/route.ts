@@ -90,13 +90,12 @@ export async function POST(req: Request) {
   try {
     // Parse incoming message data
     const input: { 
-      messages: Array<{ role: 'user'|'assistant'; content: string | any[] }>; 
+      messages: Array<{ role: 'user'|'assistant'; content: string | Array<{ type: string; text?: string; file?: { filename: string; file_data: string }; image_url?: { url: string } }> }>; 
       selectedModel: string;
       files?: Array<{ name: string; data: string; type: string }>;
       images?: Array<{ name: string; data: string; type: string }>;
     } = await req.json();
     
-    const lastMessage = input.messages[input.messages.length - 1];
     const selectedModel = input.selectedModel || 'openai/gpt-4o';
     const files = input.files || [];
     const images = input.images || [];
@@ -125,7 +124,7 @@ export async function POST(req: Request) {
     }
 
     // Prepare messages for OpenRouter
-    let openrouterMessages = [];
+    const openrouterMessages = [];
     
     // Process each message
     for (const message of input.messages) {
@@ -252,7 +251,7 @@ export async function POST(req: Request) {
                   if (content) {
                     controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content })}\n\n`));
                   }
-                } catch (e) {
+                } catch {
                   // Skip invalid JSON
                 }
               }
