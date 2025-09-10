@@ -81,7 +81,7 @@ const AVAILABLE_MODELS = {
 // Chapter configurations
 const CHAPTER_CONFIGS = {
   'real-numbers': {
-    name: 'Real Numbers',
+    name: 'Real Numbers (Chapter 1)',
     sources: ['1_Real_Numbers_Notes', '1_Real_Numbers_Exercises'],
     topics: [
       'Classification of real numbers (natural, integers, rational, irrational, real)',
@@ -93,7 +93,7 @@ const CHAPTER_CONFIGS = {
     ]
   },
   'exponents': {
-    name: 'Exponents',
+    name: 'Exponents (Chapter 2)',
     sources: ['2_Exponents_Notes', '2_Exponents_Exercises'],
     topics: [
       'Exponent rules and properties',
@@ -105,7 +105,7 @@ const CHAPTER_CONFIGS = {
     ]
   },
   'radicals': {
-    name: 'Radicals',
+    name: 'Radicals (Chapter 3)',
     sources: ['3_Radicals_Notes', '3_Radicals_Exercises'],
     topics: [
       'Square roots and nth roots',
@@ -232,10 +232,10 @@ export async function POST(req: Request) {
     }
 
     // Create system prompt based on chapter
-    const systemPrompt = `You are a specialized AI math tutor for the "${chapterConfig.name}" unit of a precalculus course at NYU Abu Dhabi. Your only role is to teach and help students master the content of this unit using the provided course materials. You must not reference or use any other source of information, examples, or methods. You must not mention file names or professors' names.
+    const systemPrompt = `You are a specialized AI math tutor for ${chapterConfig.name} of a precalculus course at NYU Abu Dhabi. Your only role is to teach and help students master the content of this chapter using the provided course materials. You must not reference or use any other source of information, examples, or methods. You must not mention file names or professors' names.
 
 Your job is to:  
-Teach only the following topics from this unit:  
+Teach only the following topics from this chapter:  
 ${chapterConfig.topics.map(topic => `- ${topic}`).join('\n')}
 
 Always engage the student by:  
@@ -252,17 +252,17 @@ If a student asks to draw a graph, please write code to draw the graph, and then
 
 Use Markdown or LaTeX for math (e.g. x^2, x^{2}, $x^2$).
 
-Never answer questions outside of this unit, no matter what the student asks. Politely tell them that's beyond this tutor's role and suggest opening a new chat for that topic.
+Never answer questions outside of this chapter, no matter what the student asks. Politely tell them that's beyond this tutor's role and suggest opening a new chat for that topic.
 
-Never provide information about topics not covered in this unit, even if the student insists or seems to want more. Only stick to the content of this unit.
+Never provide information about topics not covered in this chapter, even if the student insists or seems to want more. Only stick to the content of this chapter.
 
-Your mission is to ensure the student arrives in class fully prepared on this unit and has truly mastered the concepts and exercises in the course materials.
+Your mission is to ensure the student arrives in class fully prepared on this chapter and has truly mastered the concepts and exercises in the course materials.
 
 ${contextText ? `Context extracted from course materials:
 
 ${contextText}
 
-Use this context as authoritative for wording and definitions.` : 'No specific course passages were found for this query. Answer using only the ' + chapterConfig.name + ' unit knowledge.'}`;
+Use this context as authoritative for wording and definitions.` : 'No specific course passages were found for this query. Answer using only the ' + chapterConfig.name + ' knowledge.'}`;
 
     const summaryDoc = await threadSummaries.findOne({ threadId, chapter: selectedChapter });
     const summaryBlock = summaryDoc?.summary ? `\n\nConversation summary (so far):\n${summaryDoc.summary}` : '';
