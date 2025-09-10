@@ -22,7 +22,7 @@ export default function OpenRouterRAGTutorPage() {
         <div className="w-full max-w-6xl rounded-2xl bg-white p-6 shadow-2xl">
           <div className="text-center mb-6">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">OpenRouter RAG Tutor</h2>
-            <p className="text-gray-600">Access 400+ AI models with RAG-powered course material assistance</p>
+            <p className="text-gray-600">RAG-powered chapterwise tutoring with 400+ AI models</p>
           </div>
 
           <OpenRouterRAGChat />

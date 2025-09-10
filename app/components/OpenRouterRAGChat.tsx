@@ -400,19 +400,65 @@ export default function OpenRouterRAGChat() {
     return availableChapters.find(chapter => chapter.id === selectedChapter)
   }
 
-  const prettify = (content: string) => {
-    return content
-      .replace(/\*\*(.*?)\*\*/g, '**$1**')
-      .replace(/\*(.*?)\*/g, '*$1*')
-      .replace(/`(.*?)`/g, '`$1`')
-  }
+  const normalizeMath = (text: string) => {
+    let t = text;
+    t = t.replace(/\\\[([\s\S]*?)\\\]/g, (_m, expr) => `$$${expr}$$`);
+    t = t.replace(/\\\(([^\)]*?)\\\)/g, (_m, expr) => `$${expr}$`);
+    t = t.replace(/(^|\n)\s*\[\s*([^\]]+?)\s*\](?=\s*($|\n))/g, (_m, p1, expr) => `${p1}$$${expr}$$`);
+    return t;
+  };
+  
+  const normalizeLists = (text: string) => {
+    const lines = text.split(/\n/);
+    const out: string[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const subpart = /^\s*(?:\(([a-zA-Z0-9]+)\)|([a-zA-Z0-9]+)[\.)])\s+/.exec(line);
+      if (subpart) {
+        if (!/^\s*[-*+]\s+/.test(line) && !/^\s*\d+\./.test(line)) {
+          out.push(line.replace(/^\s*/, '- '));
+          continue;
+        }
+      }
+      out.push(line);
+    }
+    return out.join('\n');
+  };
+  
+  const prettify = (content: string) => normalizeLists(normalizeMath(content));
 
   const renderMessage = (m: Message) => {
     return (
       <ReactMarkdown
         remarkPlugins={[remarkMath]}
         rehypePlugins={[rehypeKatex]}
-        className="prose prose-sm max-w-none"
+        className="prose prose-sm dark:prose-invert max-w-none"
+        components={{
+          h1: ({ ...props }) => (
+            <h1 className="text-2xl font-bold my-4 text-center" {...props} />
+          ),
+          h2: ({ ...props }) => (
+            <h2 className="text-xl font-bold my-3 text-center" {...props} />
+          ),
+          h3: ({ ...props }) => (
+            <h3 className="text-lg font-bold my-3" {...props} />
+          ),
+          p: ({ ...props }) => (
+            <p className="my-2" {...props} />
+          ),
+          ul: ({ ...props }) => (
+            <ul className="my-2 space-y-1 list-disc pl-6" {...props} />
+          ),
+          ol: ({ ...props }) => (
+            <ol className="my-2 space-y-1 list-decimal pl-6" {...props} />
+          ),
+          li: ({ ...props }) => (
+            <li className="leading-normal" {...props} />
+          ),
+          blockquote: ({ ...props }) => (
+            <blockquote className="border-l-4 border-gray-300 pl-4 my-2" {...props} />
+          )
+        }}
       >
         {prettify(m.content)}
       </ReactMarkdown>
@@ -605,12 +651,24 @@ export default function OpenRouterRAGChat() {
 
       <form onSubmit={handleSubmit} className="border-t border-gray-200 bg-white p-4 rounded-b-xl">
         <div className="flex rounded-full bg-gray-100 shadow-inner">
+          {/* File upload button */}
+          <label className="p-3 rounded-l-full bg-gray-200 hover:bg-gray-300 text-gray-600 cursor-pointer transition-colors">
+            <Paperclip className="h-5 w-5" />
+            <input
+              type="file"
+              accept=".pdf,image/*"
+              multiple
+              onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
+              className="hidden"
+            />
+          </label>
+
           {/* Mic button for speech-to-text */}
           <button
             type="button"
             onClick={isRecording ? stopRecording : startRecording}
             disabled={isProcessingAudio}
-            className={`p-3 rounded-l-full transition-colors ${
+            className={`p-3 transition-colors ${
               isRecording 
                 ? 'bg-red-500 text-white hover:bg-red-600' 
                 : 'bg-gray-200 hover:bg-gray-300 text-gray-600'
@@ -635,15 +693,6 @@ export default function OpenRouterRAGChat() {
             disabled={isLoading}
           />
 
-          {/* File input button */}
-          <button
-            type="button"
-            onClick={() => document.getElementById('file-input')?.click()}
-            className="p-3 text-gray-600 hover:text-gray-800 transition-colors"
-          >
-            <Paperclip className="h-5 w-5" />
-          </button>
-
           {/* Send button */}
           <button
             type="submit"
@@ -658,16 +707,6 @@ export default function OpenRouterRAGChat() {
           </button>
         </div>
       </form>
-
-      {/* Hidden file input */}
-      <input
-        id="file-input"
-        type="file"
-        accept=".pdf,image/*"
-        multiple
-        onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
-        className="hidden"
-      />
     </div>
   )
 }
