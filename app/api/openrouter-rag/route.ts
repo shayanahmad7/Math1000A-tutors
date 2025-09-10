@@ -768,6 +768,46 @@ Use this context as authoritative for wording and definitions.` : 'No specific c
                     }));
                     await chatMemory.insertMany(docs);
                     console.log('[OPENROUTER-RAG] Memory embeddings stored successfully');
+                    
+                    // Update thread summary if needed (every 10 turns)
+                    if (turnIndex % 10 === 0) {
+                      try {
+                        const summaryPrompt = `Summarize the key points from this tutoring conversation in 2-3 sentences:\n\n${history.map(m => `[${m.role}] ${m.content}`).join('\n')}`;
+                        
+                        // Use OpenRouter to generate summary
+                        const summaryResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                          method: 'POST',
+                          headers: {
+                            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                            'Content-Type': 'application/json',
+                            'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+                            'X-Title': 'Math1000A OpenRouter RAG Tutor'
+                          },
+                          body: JSON.stringify({
+                            model: selectedModel,
+                            messages: [{ role: 'user', content: summaryPrompt }],
+                            temperature: 0.3,
+                            max_tokens: 200
+                          })
+                        });
+                        
+                        if (summaryResponse.ok) {
+                          const summaryData = await summaryResponse.json();
+                          const summary = summaryData.choices?.[0]?.message?.content || '';
+                          
+                          if (summary) {
+                            await threadSummaries.updateOne(
+                              { threadId, chapter: selectedChapter },
+                              { $set: { summary, updatedAt: new Date() } },
+                              { upsert: true }
+                            );
+                            console.log('[OPENROUTER-RAG] Thread summary updated');
+                          }
+                        }
+                      } catch (e) {
+                        console.log('[OPENROUTER-RAG] Summary generation error:', e);
+                      }
+                    }
                   } catch (e) {
                     console.log('[OPENROUTER-RAG] Thread update or memory storage error:', e);
                   }
@@ -828,6 +868,7 @@ Use this context as authoritative for wording and definitions.` : 'No specific c
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get('type');
+  const threadId = searchParams.get('threadId');
   
   if (type === 'models') {
     return NextResponse.json({ models: AVAILABLE_MODELS });
@@ -842,6 +883,13 @@ export async function GET(req: Request) {
         topics: config.topics
       }))
     });
+  }
+  
+  // Fetch a thread's messages (like original RAG)
+  if (threadId) {
+    const { threads } = await getCollections();
+    const thread = await threads.findOne({ sessionId: threadId });
+    return NextResponse.json({ messages: thread?.messages || [] });
   }
   
   return NextResponse.json({ error: 'Invalid request type' }, { status: 400 });
