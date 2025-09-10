@@ -587,11 +587,11 @@ export async function POST(req: Request) {
       console.log('[OPENROUTER-RAG] Memory retrieval error:', e);
     }
 
-    // Search for relevant content from PDFs (filter by chapter sources)
+    // Search for relevant content from PDFs (temporarily without source filtering to debug)
     console.log('[OPENROUTER-RAG] Starting hybrid search for relevant content...');
     console.log(`[OPENROUTER-RAG] Searching in sources: ${chapterConfig.sources.join(', ')}`);
     
-    const searchResults = await findRelevantContent(userQuery, 4, chapterConfig.sources);
+    const searchResults = await findRelevantContent(userQuery, 4);
     console.log(`[OPENROUTER-RAG] Search Results:`);
     console.log(`  - Found ${searchResults.length} relevant chunks`);
     
@@ -611,11 +611,8 @@ export async function POST(req: Request) {
       console.log('[OPENROUTER-RAG] No relevant content found - will use general knowledge');
     }
 
-    // Create system prompt based on chapter
+    // Create system prompt based on chapter (exactly like original RAG)
     const systemPrompt = `You are a specialized AI math tutor for ${chapterConfig.name} of a precalculus course at NYU Abu Dhabi. Your only role is to teach and help students master the content of this chapter using the provided course materials. You must not reference or use any other source of information, examples, or methods. You must not mention file names or professors' names.
-
-IMPORTANT: You have access to the following course documents for this chapter:
-${chapterConfig.sources.map(source => `- ${source}`).join('\n')}
 
 Your job is to:  
 Teach only the following topics from this chapter:  
