@@ -1,3 +1,4 @@
+import { NextResponse } from 'next/server'
 import { findRelevantContent, generateEmbedding } from '@/lib/ai/embedding'
 import { getCollections } from '@/lib/db/mongodb'
 

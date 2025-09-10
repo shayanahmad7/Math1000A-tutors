@@ -1,12 +1,11 @@
 'use client'
 
 import React, { useRef, useEffect, useState } from 'react'
-import { Send, Loader2, User, Bot, Mic, MicOff, Volume2, VolumeX, ChevronDown, Paperclip, X } from 'lucide-react'
+import { Send, Loader2, User, Bot, Mic, MicOff, Volume2, VolumeX, ChevronDown } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
-import Image from 'next/image'
 
 interface Message {
   id: string;
@@ -190,14 +189,6 @@ export default function OpenRouterRAGChat() {
     }
   }
 
-  const stopSpeaking = () => {
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause()
-      currentAudioRef.current = null
-    }
-    setIsSpeaking(false)
-    setIsCurrentlySpeakingId(null)
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
