@@ -13,12 +13,6 @@ interface Message {
   role: 'user' | 'assistant'
 }
 
-interface Model {
-  id: string
-  name: string
-  provider: string
-}
-
 interface CustomTutor {
   tutorId: string
   name: string
@@ -78,25 +72,23 @@ export default function CustomTutorChat() {
 
   // Load tutors
   useEffect(() => {
-    if (ownerId) {
-      loadTutors()
-    }
-  }, [ownerId])
-
-  const loadTutors = async () => {
-    try {
-      const response = await fetch(`/api/custom-tutor/list?ownerId=${ownerId}`)
-      if (response.ok) {
-        const data = await response.json()
-        setAvailableTutors(data.tutors || [])
-        if (data.tutors && data.tutors.length > 0 && !selectedTutorId) {
-          setSelectedTutorId(data.tutors[0].tutorId)
+    const loadTutors = async () => {
+      if (!ownerId) return
+      try {
+        const response = await fetch(`/api/custom-tutor/list?ownerId=${ownerId}`)
+        if (response.ok) {
+          const data = await response.json()
+          setAvailableTutors(data.tutors || [])
+          if (data.tutors && data.tutors.length > 0 && !selectedTutorId) {
+            setSelectedTutorId(data.tutors[0].tutorId)
+          }
         }
+      } catch (error) {
+        console.error('Error loading tutors:', error)
       }
-    } catch (error) {
-      console.error('Error loading tutors:', error)
     }
-  }
+    loadTutors()
+  }, [ownerId, selectedTutorId])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -176,7 +168,7 @@ export default function CustomTutorChat() {
                     return updated
                   })
                 }
-              } catch (e) {
+              } catch {
                 // Skip invalid JSON
               }
             }

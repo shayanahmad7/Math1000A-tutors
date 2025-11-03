@@ -256,7 +256,7 @@ Use this context as authoritative for wording and definitions. All information c
                     assistantMessage += content
                     controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content })}\n\n`))
                   }
-                } catch (e) {
+                } catch {
                   // Skip invalid JSON
                 }
               }
@@ -279,11 +279,12 @@ Use this context as authoritative for wording and definitions. All information c
       }
     })
     
-  } catch (error: any) {
+  } catch (error) {
     console.error('[CUSTOM-TUTOR-CHAT] Error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json({
       error: 'Failed to process chat',
-      details: error.message
+      details: errorMessage
     }, { status: 500 })
   }
 }

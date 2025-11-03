@@ -79,8 +79,9 @@ export default function CreateTutorPage() {
       setTimeout(() => {
         router.push('/my-tutors')
       }, 2000)
-    } catch (err: any) {
-      setError(err.message || 'Failed to create tutor')
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create tutor'
+      setError(errorMessage)
     } finally {
       setIsSubmitting(false)
     }

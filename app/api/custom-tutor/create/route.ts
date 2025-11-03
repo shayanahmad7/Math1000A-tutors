@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server'
 import { getCollections } from '@/lib/db/mongodb'
 import { generateEmbedding } from '@/lib/ai/embedding'
-import OpenAI from 'openai'
-// @ts-ignore - pdf-parse doesn't have TypeScript types
-const pdf = require('pdf-parse')
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || '' })
-const EMBED_MODEL = process.env.EMBED_MODEL || 'text-embedding-3-large'
+// Dynamic import for pdf-parse (no TypeScript types available)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let pdf: (buffer: Buffer) => Promise<{ text: string }>
 
 // Configuration for chunking
 const CHUNK_SIZE = 1000
@@ -31,11 +29,16 @@ function cleanPdfText(raw: string): string {
     .trim()
 }
 
+interface ChunkMetadata {
+  problemLabel?: string
+  chunkType: string
+}
+
 /**
  * Chunk content intelligently
  */
-function chunkContentIntelligently(content: string): Array<{ content: string; metadata: any }> {
-  const chunks: Array<{ content: string; metadata: any }> = []
+function chunkContentIntelligently(content: string): Array<{ content: string; metadata: ChunkMetadata }> {
+  const chunks: Array<{ content: string; metadata: ChunkMetadata }> = []
   
   // Detect problem labels for exercises
   const problemLabelRegex = /([A-Z]\d+)[\s\.:]*(?=\s|$)/g
@@ -66,8 +69,8 @@ function chunkContentIntelligently(content: string): Array<{ content: string; me
   return chunkBySentences(content)
 }
 
-function chunkByProblemLabels(content: string, labels: Array<{ label: string; position: number }>): Array<{ content: string; metadata: any }> {
-  const chunks: Array<{ content: string; metadata: any }> = []
+function chunkByProblemLabels(content: string, labels: Array<{ label: string; position: number }>): Array<{ content: string; metadata: ChunkMetadata }> {
+  const chunks: Array<{ content: string; metadata: ChunkMetadata }> = []
   let currentPos = 0
   
   for (let i = 0; i < labels.length; i++) {
@@ -109,8 +112,8 @@ function chunkByProblemLabels(content: string, labels: Array<{ label: string; po
   return chunks
 }
 
-function chunkByParagraphs(paragraphs: string[]): Array<{ content: string; metadata: any }> {
-  const chunks: Array<{ content: string; metadata: any }> = []
+function chunkByParagraphs(paragraphs: string[]): Array<{ content: string; metadata: ChunkMetadata }> {
+  const chunks: Array<{ content: string; metadata: ChunkMetadata }> = []
   let currentChunk = ''
   let currentSize = 0
   
@@ -152,8 +155,8 @@ function chunkByParagraphs(paragraphs: string[]): Array<{ content: string; metad
   return chunks
 }
 
-function chunkBySentences(content: string): Array<{ content: string; metadata: any }> {
-  const chunks: Array<{ content: string; metadata: any }> = []
+function chunkBySentences(content: string): Array<{ content: string; metadata: ChunkMetadata }> {
+  const chunks: Array<{ content: string; metadata: ChunkMetadata }> = []
   const sentences = content.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0)
   
   if (sentences.length === 0) {
@@ -205,8 +208,8 @@ function chunkBySentences(content: string): Array<{ content: string; metadata: a
   return chunks
 }
 
-function chunkByParts(parts: string[]): Array<{ content: string; metadata: any }> {
-  const chunks: Array<{ content: string; metadata: any }> = []
+function chunkByParts(parts: string[]): Array<{ content: string; metadata: ChunkMetadata }> {
+  const chunks: Array<{ content: string; metadata: ChunkMetadata }> = []
   let currentChunk = ''
   
   for (const part of parts) {
@@ -231,8 +234,8 @@ function chunkByParts(parts: string[]): Array<{ content: string; metadata: any }
   return chunks
 }
 
-function chunkByFixedSize(content: string): Array<{ content: string; metadata: any }> {
-  const chunks: Array<{ content: string; metadata: any }> = []
+function chunkByFixedSize(content: string): Array<{ content: string; metadata: ChunkMetadata }> {
+  const chunks: Array<{ content: string; metadata: ChunkMetadata }> = []
   let pos = 0
   
   while (pos < content.length) {
@@ -262,8 +265,8 @@ function chunkByFixedSize(content: string): Array<{ content: string; metadata: a
   return chunks
 }
 
-function splitLargeChunk(content: string, problemLabel: string): Array<{ content: string; metadata: any }> {
-  const chunks: Array<{ content: string; metadata: any }> = []
+function splitLargeChunk(content: string, problemLabel: string): Array<{ content: string; metadata: ChunkMetadata }> {
+  const chunks: Array<{ content: string; metadata: ChunkMetadata }> = []
   const sentences = content.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0)
   
   let currentChunk = ''
@@ -292,8 +295,14 @@ function splitLargeChunk(content: string, problemLabel: string): Array<{ content
 /**
  * Process PDF file and create embeddings
  */
-async function processPDF(pdfBuffer: Buffer, source: string): Promise<Array<{ content: string; source: string; chunkIndex: number; embedding: number[]; metadata: any }>> {
-  const data = await pdf(pdfBuffer)
+async function processPDF(pdfBuffer: Buffer, source: string): Promise<Array<{ content: string; source: string; chunkIndex: number; embedding: number[]; metadata: ChunkMetadata; id: string; resourceId: string }>> {
+  // Dynamic import pdf-parse if not already loaded
+  if (!pdf) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    pdf = require('pdf-parse')
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: any = await pdf(pdfBuffer)
   const cleanedContent = cleanPdfText(data.text)
   
   if (!cleanedContent || cleanedContent.trim().length === 0) {
@@ -301,7 +310,7 @@ async function processPDF(pdfBuffer: Buffer, source: string): Promise<Array<{ co
   }
   
   const chunkObjects = chunkContentIntelligently(cleanedContent)
-  const chunks = []
+  const chunks: Array<{ content: string; source: string; chunkIndex: number; embedding: number[]; metadata: ChunkMetadata; id: string; resourceId: string }> = []
   
   for (let i = 0; i < chunkObjects.length; i++) {
     const chunkObj = chunkObjects[i]
@@ -309,12 +318,15 @@ async function processPDF(pdfBuffer: Buffer, source: string): Promise<Array<{ co
     
     try {
       const embedding = await generateEmbedding(chunk)
+      const id = `${source}_${i}_${Date.now()}`
       chunks.push({
         content: chunk,
         source: source,
         chunkIndex: i,
         embedding: embedding,
-        metadata: chunkObj.metadata || {}
+        metadata: chunkObj.metadata || { chunkType: 'unknown' },
+        id: id,
+        resourceId: id // Will be updated after resource insert
       })
     } catch (error) {
       console.error(`Failed to embed chunk ${i + 1}:`, error)
@@ -347,7 +359,9 @@ export async function POST(req: Request) {
     const files: Array<{ name: string; buffer: Buffer; source: string }> = []
     let fileIndex = 0
     
-    for (const [key, value] of formData.entries()) {
+    // Process all file fields from FormData
+    const fileEntries = Array.from(formData.entries())
+    for (const [key, value] of fileEntries) {
       if (key.startsWith('file') && value instanceof File) {
         const file = value
         if (file.type === 'application/pdf') {
@@ -387,24 +401,26 @@ export async function POST(req: Request) {
         
         // Insert resources
         const resourceDocs = chunks.map(chunk => ({
+          id: `${chunk.source}_${chunk.chunkIndex}_${Date.now()}`,
           content: chunk.content,
-          source: chunk.source,
-          chunkIndex: chunk.chunkIndex,
-          metadata: chunk.metadata,
           createdAt: new Date()
         }))
         await resources.insertMany(resourceDocs)
         
         // Insert embeddings
-        const embeddingDocs = chunks.map(chunk => ({
+        const embeddingDocs = chunks.map((chunk, idx) => ({
+          id: `${chunk.source}_embedding_${chunk.chunkIndex}_${Date.now()}`,
+          resourceId: resourceDocs[idx].id,
           content: chunk.content,
-          source: chunk.source,
-          chunkIndex: chunk.chunkIndex,
           embedding: chunk.embedding,
-          metadata: chunk.metadata,
           createdAt: new Date()
         }))
         await embeddings.insertMany(embeddingDocs)
+        
+        // Update chunks with resourceId
+        chunks.forEach((chunk, idx) => {
+          chunk.resourceId = resourceDocs[idx].id
+        })
         
         totalChunks += chunks.length
         console.log(`[CUSTOM-TUTOR-CREATE] Processed ${chunks.length} chunks from ${file.name}`)
@@ -441,11 +457,12 @@ export async function POST(req: Request) {
       }
     })
     
-  } catch (error: any) {
+  } catch (error) {
     console.error('[CUSTOM-TUTOR-CREATE] Error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json({ 
       error: 'Failed to create tutor',
-      details: error.message 
+      details: errorMessage 
     }, { status: 500 })
   }
 }

@@ -106,6 +106,7 @@ export default function OpenRouterRAGChat() {
     }
     
     loadData()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {

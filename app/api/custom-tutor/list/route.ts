@@ -34,11 +34,12 @@ export async function GET(req: Request) {
       }))
     })
     
-  } catch (error: any) {
+  } catch (error) {
     console.error('[CUSTOM-TUTOR-LIST] Error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json({ 
       error: 'Failed to list tutors',
-      details: error.message 
+      details: errorMessage 
     }, { status: 500 })
   }
 }
