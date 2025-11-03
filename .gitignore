@@ -43,3 +43,13 @@ next-env.d.ts
 # local content PDFs (do not commit)
 public/content/
 public/Content/
+
+# test/verification scripts (local testing only)
+scripts/verify-*.js
+scripts/test-*.js
+scripts/cleanup-*.js
+scripts/remove-*.js
+scripts/find-*.js
+scripts/check-*.js
+scripts/add-*.js
+scripts/reingest-*.js

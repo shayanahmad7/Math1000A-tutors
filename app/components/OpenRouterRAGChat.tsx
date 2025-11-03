@@ -25,6 +25,7 @@ interface Chapter {
   name: string;
   sources: string[];
   topics: string[];
+  active?: boolean;
 }
 
 interface FileAttachment {
@@ -90,6 +91,14 @@ export default function OpenRouterRAGChat() {
         if (chaptersResponse.ok) {
           const chaptersData = await chaptersResponse.json()
           setAvailableChapters(chaptersData.chapters)
+          // Ensure selected chapter is active, otherwise switch to first active chapter
+          const activeChapters = chaptersData.chapters.filter((c: Chapter) => c.active !== false)
+          if (activeChapters.length > 0) {
+            const currentChapter = chaptersData.chapters.find((c: Chapter) => c.id === selectedChapter)
+            if (!currentChapter || currentChapter.active === false) {
+              setSelectedChapter(activeChapters[0].id)
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading data:', error)
@@ -398,6 +407,11 @@ export default function OpenRouterRAGChat() {
   }
 
   const handleChapterSelect = (chapterId: string) => {
+    const chapter = availableChapters.find(c => c.id === chapterId)
+    // Don't allow selecting inactive chapters
+    if (chapter && chapter.active === false) {
+      return
+    }
     setSelectedChapter(chapterId)
     setIsChapterDropdownOpen(false)
     // Clear messages when switching chapters
@@ -510,7 +524,8 @@ export default function OpenRouterRAGChat() {
               
               {isChapterDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
-                  {availableChapters.map((chapter) => (
+                  {/* Active chapters */}
+                  {availableChapters.filter(c => c.active !== false).map((chapter) => (
                     <button
                       key={chapter.id}
                       onClick={() => handleChapterSelect(chapter.id)}
@@ -521,6 +536,26 @@ export default function OpenRouterRAGChat() {
                       <div className="font-medium">{chapter.name}</div>
                     </button>
                   ))}
+                  
+                  {/* Separator if there are inactive chapters */}
+                  {availableChapters.some(c => c.active === false) && (
+                    <>
+                      <div className="border-t border-gray-200 my-1"></div>
+                      <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                        Coming Soon
+                      </div>
+                      {availableChapters.filter(c => c.active === false).map((chapter) => (
+                        <div
+                          key={chapter.id}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-400 cursor-not-allowed"
+                          title="This chapter tutor is not available yet"
+                        >
+                          <div className="font-medium">{chapter.name}</div>
+                          <div className="text-xs text-gray-400 mt-0.5">Not available yet</div>
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </div>
               )}
             </div>

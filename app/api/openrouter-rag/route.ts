@@ -80,10 +80,12 @@ const AVAILABLE_MODELS = {
 }
 
 // Chapter configurations
+// Active chapters have active: true, inactive chapters are kept for future use
 const CHAPTER_CONFIGS = {
   'real-numbers': {
     name: 'Real Numbers (Chapter 1)',
     sources: ['1_Real_Numbers_Notes', '1_Real_Numbers_Exercises'],
+    active: true,
     topics: [
       'Classification of real numbers (natural, integers, rational, irrational, real)',
       'Properties of real numbers (commutative, associative, distributive, identities, inverses)',
@@ -96,6 +98,7 @@ const CHAPTER_CONFIGS = {
   'exponents': {
     name: 'Exponents (Chapter 2)',
     sources: ['2_Exponents_Notes', '2_Exponents_Exercises'],
+    active: true,
     topics: [
       'Exponent rules and properties',
       'Zero and negative exponents',
@@ -108,6 +111,7 @@ const CHAPTER_CONFIGS = {
   'radicals': {
     name: 'Radicals (Chapter 3)',
     sources: ['3_Radicals_Notes', '3_Radicals_Exercises'],
+    active: true,
     topics: [
       'Square roots and nth roots',
       'Simplifying radical expressions',
@@ -120,6 +124,7 @@ const CHAPTER_CONFIGS = {
   'algebraic-expressions': {
     name: 'Algebraic Expressions (Chapter 4)',
     sources: ['4_Algebraic_Expressions_Notes', '4_Algebraic_Expressions_Exercises'],
+    active: false, // Not available yet
     topics: [
       'Variables and constants',
       'Algebraic terms and coefficients',
@@ -132,6 +137,7 @@ const CHAPTER_CONFIGS = {
   'factoring': {
     name: 'Factoring (Chapter 5)',
     sources: ['5_Factoring_Notes', '5_Factoring_Exercises'],
+    active: false,
     topics: [
       'Greatest common factor (GCF)',
       'Factoring by grouping',
@@ -144,6 +150,7 @@ const CHAPTER_CONFIGS = {
   'quadratic-trinomial-expressions': {
     name: 'Quadratic Trinomial Expressions (Chapter 6)',
     sources: ['6_Quadratic_Trinomial_Expressions_Notes', '6_Quadratic_Trinomial_Expressions_Exercises'],
+    active: false,
     topics: [
       'Quadratic trinomial forms',
       'Factoring quadratic trinomials',
@@ -156,6 +163,7 @@ const CHAPTER_CONFIGS = {
   'rational-expressions': {
     name: 'Rational Expressions (Chapter 7)',
     sources: ['7_Rational_Expressions_Notes', '7_Rational_Expressions_Exercises'],
+    active: false,
     topics: [
       'Rational expressions and restrictions',
       'Simplifying rational expressions',
@@ -168,6 +176,7 @@ const CHAPTER_CONFIGS = {
   'compound-fractions': {
     name: 'Compound Fractions (Chapter 8)',
     sources: ['8_Compound_Fractions_Notes', '8_Compound_Fractions_Exercises'],
+    active: false,
     topics: [
       'Complex fractions and compound fractions',
       'Simplifying compound fractions',
@@ -180,6 +189,7 @@ const CHAPTER_CONFIGS = {
   'avoiding-common-errors': {
     name: 'Avoiding Common Errors (Chapter 9)',
     sources: ['9_Avoiding_Common_Errors_Notes', '9_Avoiding_Common_Errors_Exercises'],
+    active: false,
     topics: [
       'Common algebraic mistakes',
       'Order of operations errors',
@@ -192,6 +202,7 @@ const CHAPTER_CONFIGS = {
   'linear-quadratic-absolute-value-equations': {
     name: 'Linear, Quadratic, and Absolute Value Equations (Chapter 10)',
     sources: ['10_Linear_Quadratic_and_Absolute_Value_Equations_Notes', '10_Linear_Quadratic_and_Absolute_Value_Equations_Exercises'],
+    active: false,
     topics: [
       'Linear equations and solving techniques',
       'Quadratic equations and factoring',
@@ -204,6 +215,7 @@ const CHAPTER_CONFIGS = {
   'other-equations': {
     name: 'Other Equations (Chapter 11)',
     sources: ['11_Other_Equations_Notes', '11_Other_Equations_Exercises'],
+    active: false,
     topics: [
       'Rational equations',
       'Radical equations',
@@ -216,6 +228,7 @@ const CHAPTER_CONFIGS = {
   'inequalities': {
     name: 'Inequalities (Chapter 12)',
     sources: ['12_Inequalities_Notes', '12_Inequalities_Exercises'],
+    active: false,
     topics: [
       'Linear inequalities',
       'Quadratic inequalities',
@@ -228,6 +241,7 @@ const CHAPTER_CONFIGS = {
   'coordinate-plane-graphs-intercepts': {
     name: 'Coordinate Plane, Graphs, and Intercepts (Chapter 13)',
     sources: ['13_Coordinate_Plane_Graphs_Intercepts_Notes', '13_Coordinate_Plane_Graphs_Intercepts_Exercises'],
+    active: false,
     topics: [
       'Cartesian coordinate system',
       'Plotting points and ordered pairs',
@@ -240,6 +254,7 @@ const CHAPTER_CONFIGS = {
   'circles': {
     name: 'Circles (Chapter 14)',
     sources: ['14_Circles_Notes', '14_Circles_Exercises'],
+    active: false,
     topics: [
       'Circle equations and standard form',
       'Center and radius of circles',
@@ -252,6 +267,7 @@ const CHAPTER_CONFIGS = {
   'functions-domain-range': {
     name: 'Functions, Domain, and Range (Chapter 15)',
     sources: ['15_Functions_Domain_Range_Notes', '15_Functions_Domain_Range_Exercises'],
+    active: false,
     topics: [
       'Definition of functions',
       'Function notation and evaluation',
@@ -264,6 +280,7 @@ const CHAPTER_CONFIGS = {
   'graphs-of-functions': {
     name: 'Graphs of Functions (Chapter 16)',
     sources: ['16_Graphs_of_Functions_Notes', '16_Graphs_of_Functons_Exercises'],
+    active: false,
     topics: [
       'Graphing basic functions',
       'Linear and quadratic functions',
@@ -276,6 +293,7 @@ const CHAPTER_CONFIGS = {
   'lines': {
     name: 'Lines (Chapter 17)',
     sources: ['17_Lines_Notes', '17_Lines_Exercises'],
+    active: false,
     topics: [
       'Slope of a line',
       'Point-slope form',
@@ -288,6 +306,7 @@ const CHAPTER_CONFIGS = {
   'solving-equations-inequalities-with-graphs': {
     name: 'Solving Equations and Inequalities with Graphs (Chapter 18)',
     sources: ['18_Solving_Equations_and_Inequalities_with_Graphs_Notes', '18_Solving_Equations_and_Inequalities_with_Graphs_Exercises'],
+    active: false,
     topics: [
       'Graphical solutions to equations',
       'Intersection points',
@@ -300,6 +319,7 @@ const CHAPTER_CONFIGS = {
   'piecewise-functions': {
     name: 'Piecewise Functions (Chapter 19)',
     sources: ['19_Piecewise_Functions_Notes', '19_Piecewise_Functions_Exercises'],
+    active: false,
     topics: [
       'Definition of piecewise functions',
       'Evaluating piecewise functions',
@@ -312,6 +332,7 @@ const CHAPTER_CONFIGS = {
   'net-change': {
     name: 'Net Change (Chapter 20)',
     sources: ['20_Net_Change_Notes', '20_Net_Change_Exercises'],
+    active: false,
     topics: [
       'Net change concept',
       'Average rate of change',
@@ -324,6 +345,7 @@ const CHAPTER_CONFIGS = {
   'transformations-of-functions': {
     name: 'Transformations of Functions (Chapter 21)',
     sources: ['21_Transformations_of_Functions_Notes', '21_Transformations_of_Functions_Exercises'],
+    active: false,
     topics: [
       'Vertical and horizontal shifts',
       'Reflections across axes',
@@ -336,6 +358,7 @@ const CHAPTER_CONFIGS = {
   'quadratic-functions': {
     name: 'Quadratic Functions (Chapter 22)',
     sources: ['22_Quadratic_Functions_Notes', '22_Quadratic_Functions_Exercises'],
+    active: false,
     topics: [
       'Standard form of quadratic functions',
       'Vertex form and vertex',
@@ -348,6 +371,7 @@ const CHAPTER_CONFIGS = {
   'polynomial-functions': {
     name: 'Polynomial Functions (Chapter 23)',
     sources: ['23_Polynomial_Functions_Notes', '23_Polynomial_Functions_Exercises'],
+    active: false,
     topics: [
       'Polynomial functions and degrees',
       'End behavior of polynomials',
@@ -360,6 +384,7 @@ const CHAPTER_CONFIGS = {
   'combining-functions': {
     name: 'Combining Functions (Chapter 24)',
     sources: ['24_Combining_Functions_Notes', '24_Combining_Functions_Exercises'],
+    active: false,
     topics: [
       'Arithmetic operations on functions',
       'Addition, subtraction, multiplication, division',
@@ -372,6 +397,7 @@ const CHAPTER_CONFIGS = {
   'composition-of-functions': {
     name: 'Composition of Functions (Chapter 25)',
     sources: ['25_Composition_of_Functions_Notes', '25_Composition_of_Functions_Exercises'],
+    active: false,
     topics: [
       'Function composition notation',
       'Evaluating composite functions',
@@ -384,6 +410,7 @@ const CHAPTER_CONFIGS = {
   'exponential-functions': {
     name: 'Exponential Functions (Chapter 26)',
     sources: ['26A_Exponential_Functions_with_Base_a_Notes', '26B_Exponential_Functions_with_Base_e_Notes', '26C_Transformations_of_Exponential_Functions_Notes', '26_Exponential_Functions_Exercises'],
+    active: false,
     topics: [
       'Exponential functions with base a',
       'Natural exponential functions (base e)',
@@ -396,6 +423,7 @@ const CHAPTER_CONFIGS = {
   'inverse-functions': {
     name: 'Inverse Functions (Chapter 27)',
     sources: ['27_Inverse_Functions_Notes', '27_Inverse_Functions_Exercises'],
+    active: false,
     topics: [
       'Definition of inverse functions',
       'One-to-one functions',
@@ -408,6 +436,7 @@ const CHAPTER_CONFIGS = {
   'logarithmic-functions-and-their-graphs': {
     name: 'Logarithmic Functions and their Graphs (Chapter 28)',
     sources: ['28_Logarithmic_Functions_and_their_Graphs_Notes', '28_Logarithmic_Functions_and_their_Graphs_Exercises'],
+    active: false,
     topics: [
       'Definition of logarithmic functions',
       'Common and natural logarithms',
@@ -420,6 +449,7 @@ const CHAPTER_CONFIGS = {
   'exponential-logarithmic-equations-inequalities': {
     name: 'Exponential and Logarithmic Equations and Inequalities (Chapter 29)',
     sources: ['29_Exponential_and_Logarithmic_Equations_and_Inequalities_Notes', '29_Exponential_and_Logarithmic_Equations_and_Inequalities_Exercises'],
+    active: false,
     topics: [
       'Solving exponential equations',
       'Solving logarithmic equations',
@@ -432,6 +462,7 @@ const CHAPTER_CONFIGS = {
   'binomial-theorem': {
     name: 'Binomial Theorem (Chapter 30)',
     sources: ['30_Binomial_Theorem_Notes', '30_Binomial_Theorem_Exercises'],
+    active: false,
     topics: [
       'Pascal\'s triangle',
       'Binomial coefficients',
@@ -444,6 +475,7 @@ const CHAPTER_CONFIGS = {
   'average-rate-of-change': {
     name: 'Average Rate of Change (Chapter 31)',
     sources: ['31_Average_Rate_of_Change_Notes', '31_Average_Rate_of_Change_Exercises'],
+    active: false,
     topics: [
       'Average rate of change formula',
       'Secant lines and slopes',
@@ -518,6 +550,15 @@ export async function POST(req: Request) {
       console.error(`[OPENROUTER-RAG] Invalid chapter selection: ${selectedChapter}`);
       return NextResponse.json({ 
         error: 'Invalid chapter selection' 
+      }, { status: 400 });
+    }
+
+    // Check if chapter is active
+    if (!chapterConfig.active) {
+      console.error(`[OPENROUTER-RAG] Chapter ${selectedChapter} is not active yet`);
+      return NextResponse.json({ 
+        error: 'This chapter tutor is not available yet. Please select an active chapter.',
+        chapterName: chapterConfig.name
       }, { status: 400 });
     }
 
@@ -612,7 +653,10 @@ export async function POST(req: Request) {
     }
 
     // Create system prompt based on chapter (exactly like original RAG)
+    const sourceList = chapterConfig.sources.map(s => s.replace(/_/g, ' ')).join(' and ')
     const systemPrompt = `You are a specialized AI math tutor for ${chapterConfig.name} of a precalculus course at NYU Abu Dhabi. Your only role is to teach and help students master the content of this chapter using the provided course materials. You must not reference or use any other source of information, examples, or methods. You must not mention file names or professors' names.
+
+IMPORTANT: The information you receive is extracted from exactly ${chapterConfig.sources.length} course documents for this chapter: ${sourceList}. All retrieved context comes from these ${chapterConfig.sources.length} documents only. You should reference content from both the notes document (for explanations and concepts) and the exercises document (for practice problems) when relevant.
 
 Your job is to:  
 Teach only the following topics from this chapter:  
@@ -638,11 +682,11 @@ Never provide information about topics not covered in this chapter, even if the 
 
 Your mission is to ensure the student arrives in class fully prepared on this chapter and has truly mastered the concepts and exercises in the course materials.
 
-${contextText ? `Context extracted from course materials:
+${contextText ? `Context extracted from the ${chapterConfig.sources.length} course documents (${sourceList}):
 
 ${contextText}
 
-Use this context as authoritative for wording and definitions.` : 'No specific course passages were found for this query. Answer using only the ' + chapterConfig.name + ' knowledge.'}`;
+Use this context as authoritative for wording and definitions. All information comes from these ${chapterConfig.sources.length} documents.` : `No specific course passages were found for this query. Answer using only the ${chapterConfig.name} knowledge from the ${chapterConfig.sources.length} course documents (${sourceList}).`}`;
 
     console.log(`[OPENROUTER-RAG] System prompt length: ${systemPrompt.length} characters`);
 
@@ -897,7 +941,8 @@ export async function GET(req: Request) {
         id: key,
         name: config.name,
         sources: config.sources,
-        topics: config.topics
+        topics: config.topics,
+        active: config.active !== false // Default to true if not specified
       }))
     });
   }
