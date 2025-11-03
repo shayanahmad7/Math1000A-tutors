@@ -9,7 +9,9 @@ const CHUNK_OVERLAP = 200
 const MIN_CHUNK_SIZE = 100
 const MAX_CHUNK_SIZE = 2000
 
-export const maxDuration = 300 // 5 minutes for document processing
+// Vercel free tier: 10s, Pro: 60s, Enterprise: 300s
+// Set to 60s to work on Pro tier (use 300s for Enterprise)
+export const maxDuration = 60 // 60 seconds (adjust based on your Vercel plan)
 export const runtime = 'nodejs'
 
 /**
@@ -343,6 +345,27 @@ async function processPDF(pdfBuffer: Buffer, source: string): Promise<Array<{ co
 export async function POST(req: Request) {
   try {
     console.log('[CUSTOM-TUTOR-CREATE] ===== Starting Tutor Creation =====')
+    console.log('[CUSTOM-TUTOR-CREATE] Environment check:')
+    console.log(`  - MONGODB_URI: ${process.env.MONGODB_URI ? 'SET' : 'MISSING'}`)
+    console.log(`  - OPENAI_API_KEY: ${process.env.OPENAI_API_KEY ? 'SET' : 'MISSING'}`)
+    console.log(`  - VERCEL: ${process.env.VERCEL || 'false'}`)
+    
+    // Check required environment variables
+    if (!process.env.MONGODB_URI) {
+      console.error('[CUSTOM-TUTOR-CREATE] MONGODB_URI is missing')
+      return NextResponse.json({ 
+        error: 'Server configuration error: Database connection not configured',
+        details: 'MONGODB_URI environment variable is missing'
+      }, { status: 500 })
+    }
+    
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('[CUSTOM-TUTOR-CREATE] OPENAI_API_KEY is missing')
+      return NextResponse.json({ 
+        error: 'Server configuration error: API key not configured',
+        details: 'OPENAI_API_KEY environment variable is missing'
+      }, { status: 500 })
+    }
     
     const formData = await req.formData()
     const name = formData.get('name') as string
@@ -461,10 +484,19 @@ export async function POST(req: Request) {
     
   } catch (error) {
     console.error('[CUSTOM-TUTOR-CREATE] Error:', error)
+    console.error('[CUSTOM-TUTOR-CREATE] Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorDetails = error instanceof Error ? {
+      message: error.message,
+      name: error.name,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    } : { message: 'Unknown error occurred' }
+    
     return NextResponse.json({ 
       error: 'Failed to create tutor',
-      details: errorMessage 
+      details: errorMessage,
+      ...errorDetails
     }, { status: 500 })
   }
 }

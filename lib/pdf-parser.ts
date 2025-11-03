@@ -12,20 +12,25 @@ let pdfParse: any = null
 export async function parsePDF(buffer: Buffer): Promise<{ text: string }> {
   if (!pdfParse) {
     // pdf-parse tries to access test files during initialization
-    // Create the test directory structure if it doesn't exist to avoid ENOENT errors
-    const testDir = path.join(process.cwd(), 'test', 'data')
-    try {
-      if (!fs.existsSync(testDir)) {
-        fs.mkdirSync(testDir, { recursive: true })
-        // Create an empty placeholder file
-        const placeholderFile = path.join(testDir, '05-versions-space.pdf')
-        if (!fs.existsSync(placeholderFile)) {
-          fs.writeFileSync(placeholderFile, Buffer.from([]))
+    // On Vercel (read-only filesystem), we can't create directories
+    // Try to use /tmp if available, otherwise just catch and handle the error
+    const isVercel = process.env.VERCEL === '1'
+    
+    if (!isVercel) {
+      // Only try to create directories in non-Vercel environments
+      const testDir = path.join(process.cwd(), 'test', 'data')
+      try {
+        if (!fs.existsSync(testDir)) {
+          fs.mkdirSync(testDir, { recursive: true })
+          const placeholderFile = path.join(testDir, '05-versions-space.pdf')
+          if (!fs.existsSync(placeholderFile)) {
+            fs.writeFileSync(placeholderFile, Buffer.from([]))
+          }
         }
+      } catch (dirError) {
+        // Ignore directory creation errors - they shouldn't block PDF parsing
+        console.warn('[PDF-PARSER] Could not create test directory:', dirError)
       }
-    } catch (dirError) {
-      // Ignore directory creation errors - they shouldn't block PDF parsing
-      console.warn('[PDF-PARSER] Could not create test directory:', dirError)
     }
     
     try {
@@ -37,6 +42,7 @@ export async function parsePDF(buffer: Buffer): Promise<{ text: string }> {
       // If it's a test file error, the module might still be usable
       // Try to use it anyway if the error is just about test files
       if (err?.code === 'ENOENT' && err?.path?.includes('test')) {
+        console.warn('[PDF-PARSER] Test file error ignored, attempting to use module:', err.path)
         // Try to get the module from cache
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const cached = require.cache[require.resolve('pdf-parse')]
@@ -48,6 +54,7 @@ export async function parsePDF(buffer: Buffer): Promise<{ text: string }> {
           pdfParse = require('pdf-parse')
         }
       } else {
+        console.error('[PDF-PARSER] Failed to load pdf-parse:', error)
         throw error
       }
     }

@@ -79,7 +79,10 @@ export default function CreateTutorPage() {
       }
 
       if (!response.ok) {
-        throw new Error(data.error || data.details || 'Failed to create tutor')
+        // Show detailed error message from backend
+        const errorMsg = data.error || data.details || 'Failed to create tutor'
+        const fullError = data.details ? `${data.error || 'Failed to create tutor'}: ${data.details}` : errorMsg
+        throw new Error(fullError)
       }
 
       setSuccess(true)
