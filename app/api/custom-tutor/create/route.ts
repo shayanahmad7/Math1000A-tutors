@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getCollections } from '@/lib/db/mongodb'
 import { generateEmbedding } from '@/lib/ai/embedding'
-
-// Dynamic import for pdf-parse (no TypeScript types available)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let pdf: (buffer: Buffer) => Promise<{ text: string }>
+import { parsePDF } from '@/lib/pdf-parser'
 
 // Configuration for chunking
 const CHUNK_SIZE = 1000
@@ -296,44 +293,50 @@ function splitLargeChunk(content: string, problemLabel: string): Array<{ content
  * Process PDF file and create embeddings
  */
 async function processPDF(pdfBuffer: Buffer, source: string): Promise<Array<{ content: string; source: string; chunkIndex: number; embedding: number[]; metadata: ChunkMetadata; id: string; resourceId: string }>> {
-  // Dynamic import pdf-parse if not already loaded
-  if (!pdf) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    pdf = require('pdf-parse')
-  }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data: any = await pdf(pdfBuffer)
-  const cleanedContent = cleanPdfText(data.text)
-  
-  if (!cleanedContent || cleanedContent.trim().length === 0) {
-    return []
-  }
-  
-  const chunkObjects = chunkContentIntelligently(cleanedContent)
-  const chunks: Array<{ content: string; source: string; chunkIndex: number; embedding: number[]; metadata: ChunkMetadata; id: string; resourceId: string }> = []
-  
-  for (let i = 0; i < chunkObjects.length; i++) {
-    const chunkObj = chunkObjects[i]
-    const chunk = chunkObj.content
+  try {
+    console.log(`[CUSTOM-TUTOR-CREATE] Parsing PDF buffer (${pdfBuffer.length} bytes)...`)
+    const data = await parsePDF(pdfBuffer)
+    console.log(`[CUSTOM-TUTOR-CREATE] PDF parsed successfully, text length: ${data.text?.length || 0}`)
+    const cleanedContent = cleanPdfText(data.text)
     
-    try {
-      const embedding = await generateEmbedding(chunk)
-      const id = `${source}_${i}_${Date.now()}`
-      chunks.push({
-        content: chunk,
-        source: source,
-        chunkIndex: i,
-        embedding: embedding,
-        metadata: chunkObj.metadata || { chunkType: 'unknown' },
-        id: id,
-        resourceId: id // Will be updated after resource insert
-      })
-    } catch (error) {
-      console.error(`Failed to embed chunk ${i + 1}:`, error)
+    if (!cleanedContent || cleanedContent.trim().length === 0) {
+      console.log('[CUSTOM-TUTOR-CREATE] No content extracted from PDF')
+      return []
     }
+    
+    console.log(`[CUSTOM-TUTOR-CREATE] Chunking content (${cleanedContent.length} chars)...`)
+    const chunkObjects = chunkContentIntelligently(cleanedContent)
+    console.log(`[CUSTOM-TUTOR-CREATE] Created ${chunkObjects.length} chunks`)
+    
+    const chunks: Array<{ content: string; source: string; chunkIndex: number; embedding: number[]; metadata: ChunkMetadata; id: string; resourceId: string }> = []
+    
+    for (let i = 0; i < chunkObjects.length; i++) {
+      const chunkObj = chunkObjects[i]
+      const chunk = chunkObj.content
+      
+      try {
+        const embedding = await generateEmbedding(chunk)
+        const id = `${source}_${i}_${Date.now()}`
+        chunks.push({
+          content: chunk,
+          source: source,
+          chunkIndex: i,
+          embedding: embedding,
+          metadata: chunkObj.metadata || { chunkType: 'unknown' },
+          id: id,
+          resourceId: id // Will be updated after resource insert
+        })
+      } catch (error) {
+        console.error(`[CUSTOM-TUTOR-CREATE] Failed to embed chunk ${i + 1}:`, error)
+      }
+    }
+    
+    console.log(`[CUSTOM-TUTOR-CREATE] Successfully processed ${chunks.length} chunks from ${source}`)
+    return chunks
+  } catch (error) {
+    console.error(`[CUSTOM-TUTOR-CREATE] Error processing PDF ${source}:`, error)
+    throw error
   }
-  
-  return chunks
 }
 
 /**
@@ -413,6 +416,7 @@ export async function POST(req: Request) {
           resourceId: resourceDocs[idx].id,
           content: chunk.content,
           embedding: chunk.embedding,
+          source: chunk.source, // Add source field for filtering
           createdAt: new Date()
         }))
         await embeddings.insertMany(embeddingDocs)

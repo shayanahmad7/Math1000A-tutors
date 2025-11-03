@@ -69,10 +69,17 @@ export default function CreateTutorPage() {
         body: formData
       })
 
-      const data = await response.json()
+      let data
+      const contentType = response.headers.get('content-type')
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json()
+      } else {
+        const text = await response.text()
+        throw new Error(text || 'Failed to create tutor')
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create tutor')
+        throw new Error(data.error || data.details || 'Failed to create tutor')
       }
 
       setSuccess(true)
@@ -88,7 +95,26 @@ export default function CreateTutorPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
+    <main className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 relative">
+      {/* Loading Overlay */}
+      {isSubmitting && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md mx-4">
+            <div className="flex flex-col items-center space-y-4">
+              <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+              <h3 className="text-xl font-semibold text-gray-800">Creating Your Tutor</h3>
+              <p className="text-sm text-gray-600 text-center">
+                Please wait while we process your documents and create embeddings. This may take a minute or two.
+              </p>
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-4">
+                <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">Do not close this page or navigate away</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-4xl mx-auto px-4 py-4">

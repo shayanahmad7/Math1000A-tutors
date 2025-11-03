@@ -53,3 +53,7 @@ scripts/find-*.js
 scripts/check-*.js
 scripts/add-*.js
 scripts/reingest-*.js
+scripts/delete-*.js
+
+# pdf-parse test directory (created automatically)
+/test/

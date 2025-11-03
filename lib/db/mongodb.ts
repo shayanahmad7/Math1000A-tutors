@@ -6,7 +6,7 @@ let client: MongoClient
 let db: Db
 
 export interface Resource { _id?: string; id: string; content: string; createdAt: Date }
-export interface Embedding { _id?: string; id: string; resourceId: string; content: string; embedding: number[]; createdAt: Date }
+export interface Embedding { _id?: string; id: string; resourceId: string; content: string; embedding: number[]; source?: string; createdAt: Date }
 export interface ChatThread { _id?: string; sessionId: string; chapter: string; messages: { role: 'user'|'assistant'; content: string; timestamp: Date }[]; createdAt: Date; updatedAt: Date }
 export interface ChatMemory { _id?: string; threadId: string; role: 'user'|'assistant'; turn: number; content: string; embedding: number[]; createdAt: Date }
 export interface ThreadSummary { _id?: string; threadId: string; chapter: string; summary: string; createdAt: Date; updatedAt: Date }
