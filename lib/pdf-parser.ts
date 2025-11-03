@@ -6,6 +6,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let pdfParse: any = null
 
 export async function parsePDF(buffer: Buffer): Promise<{ text: string }> {
@@ -30,10 +31,12 @@ export async function parsePDF(buffer: Buffer): Promise<{ text: string }> {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       pdfParse = require('pdf-parse')
-    } catch (error: any) {
+    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const err = error as any
       // If it's a test file error, the module might still be usable
       // Try to use it anyway if the error is just about test files
-      if (error?.code === 'ENOENT' && error?.path?.includes('test')) {
+      if (err?.code === 'ENOENT' && err?.path?.includes('test')) {
         // Try to get the module from cache
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const cached = require.cache[require.resolve('pdf-parse')]

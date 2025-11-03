@@ -35,8 +35,6 @@ interface ChunkMetadata {
  * Chunk content intelligently
  */
 function chunkContentIntelligently(content: string): Array<{ content: string; metadata: ChunkMetadata }> {
-  const chunks: Array<{ content: string; metadata: ChunkMetadata }> = []
-  
   // Detect problem labels for exercises
   const problemLabelRegex = /([A-Z]\d+)[\s\.:]*(?=\s|$)/g
   const problemLabels: Array<{ label: string; position: number }> = []
