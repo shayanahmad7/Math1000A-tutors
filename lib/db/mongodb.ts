@@ -10,12 +10,14 @@ export interface Embedding { _id?: string; id: string; resourceId: string; conte
 export interface ChatThread { _id?: string; sessionId: string; chapter: string; messages: { role: 'user'|'assistant'; content: string; timestamp: Date }[]; createdAt: Date; updatedAt: Date }
 export interface ChatMemory { _id?: string; threadId: string; role: 'user'|'assistant'; turn: number; content: string; embedding: number[]; createdAt: Date }
 export interface ThreadSummary { _id?: string; threadId: string; chapter: string; summary: string; createdAt: Date; updatedAt: Date }
+export interface CustomTutor { _id?: string; tutorId: string; name: string; systemPrompt: string; sources: string[]; ownerId: string; createdAt: Date; updatedAt: Date; description?: string }
 
 let resourcesCollection: Collection<Resource>
 let embeddingsCollection: Collection<Embedding>
 let threadsCollection: Collection<ChatThread>
 let chatMemoryCollection: Collection<ChatMemory>
 let threadSummariesCollection: Collection<ThreadSummary>
+let customTutorsCollection: Collection<CustomTutor>
 
 export async function connectToDatabase() {
   if (!uri) {
@@ -32,9 +34,10 @@ export async function connectToDatabase() {
     threadsCollection = db.collection<ChatThread>('chat_threads')
     chatMemoryCollection = db.collection<ChatMemory>('chat_memory')
     threadSummariesCollection = db.collection<ThreadSummary>('thread_summaries')
+    customTutorsCollection = db.collection<CustomTutor>('custom_tutors')
     await ensureIndexes()
   }
-  return { db, resources: resourcesCollection, embeddings: embeddingsCollection, threads: threadsCollection, chatMemory: chatMemoryCollection }
+  return { db, resources: resourcesCollection, embeddings: embeddingsCollection, threads: threadsCollection, chatMemory: chatMemoryCollection, threadSummaries: threadSummariesCollection, customTutors: customTutorsCollection }
 }
 
 async function ensureIndexes() {
@@ -42,11 +45,13 @@ async function ensureIndexes() {
     await resourcesCollection.createIndex({ content: 'text' })
     await threadsCollection.createIndex({ sessionId: 1, chapter: 1 })
     await chatMemoryCollection.createIndex({ threadId: 1, turn: 1 })
+    await customTutorsCollection.createIndex({ ownerId: 1 })
+    await customTutorsCollection.createIndex({ tutorId: 1 }, { unique: true })
   } catch {
     // Silently handle index creation errors
   }
 }
 
-export async function getCollections() { await connectToDatabase(); return { resources: resourcesCollection, embeddings: embeddingsCollection, threads: threadsCollection, chatMemory: chatMemoryCollection, threadSummaries: threadSummariesCollection } }
+export async function getCollections() { await connectToDatabase(); return { resources: resourcesCollection, embeddings: embeddingsCollection, threads: threadsCollection, chatMemory: chatMemoryCollection, threadSummaries: threadSummariesCollection, customTutors: customTutorsCollection } }
 
 

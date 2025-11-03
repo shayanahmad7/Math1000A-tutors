@@ -26,7 +26,7 @@ export default function Home() {
         </div>
 
         {/* Tutor Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
           {/* OpenAI RAG Tutor */}
           <Link href="/rag-tutor" className="group">
             <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-gray-200 group-hover:border-blue-300">
@@ -87,6 +87,38 @@ export default function Home() {
                             <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-xs">400+ Models</span>
                             <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-xs">RAG Powered</span>
                             <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-xs">Multi-Chapter</span>
+                          </div>
+                        </div>
+                      </Link>
+
+                      {/* Create Custom Tutor */}
+                      <Link href="/create-tutor" className="group">
+                        <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-gray-200 group-hover:border-orange-300">
+                          <h3 className="text-xl font-semibold text-gray-800 mb-2">Create Custom Tutor</h3>
+                          <p className="text-sm text-gray-500 mb-4">Build Your Own AI Tutor</p>
+                          <p className="text-gray-600 mb-4">
+                            Create your own custom AI tutor by uploading documents and defining a system prompt. Perfect for teachers and students.
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs">Custom</span>
+                            <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs">Upload Docs</span>
+                            <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs">RAG Powered</span>
+                          </div>
+                        </div>
+                      </Link>
+
+                      {/* My Custom Tutors */}
+                      <Link href="/my-tutors" className="group">
+                        <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-gray-200 group-hover:border-green-300">
+                          <h3 className="text-xl font-semibold text-gray-800 mb-2">My Custom Tutors</h3>
+                          <p className="text-sm text-gray-500 mb-4">Your Created Tutors</p>
+                          <p className="text-gray-600 mb-4">
+                            Access and chat with all your custom AI tutors. Each tutor uses your uploaded documents and custom system prompts.
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">My Tutors</span>
+                            <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">400+ Models</span>
+                            <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">RAG Powered</span>
                           </div>
                         </div>
                       </Link>
